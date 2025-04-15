@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Мій сайт{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+
+    {% if user.is_authenticated %}
+    <header style="background: #333; color: white; padding: 10px;">
+        <div style="max-width: 800px; margin: auto; display: flex; justify-content: space-between;">
+            <div>👤 {{ user.username }}</div>
+            <div>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: none; color: white; cursor: pointer;">Вийти</button>
+                </form>
+            </div>
+        </div>
+    </header>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</body>
+</html>

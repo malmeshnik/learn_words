@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Вхід</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #eef;
+            text-align: center;
+            padding-top: 100px;
+        }
+        input {
+            padding: 10px;
+            margin: 5px;
+            font-size: 18px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Увійти в акаунт</h2>
+    {% if messages %}
+        <div style="color:red;">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="Логін" required><br>
+        <input type="password" name="password" placeholder="Пароль" required><br>
+        <button type="submit">Увійти</button>
+    </form>
+
+    <a href="/register/">Немає акаунта? Зареєструватися</a>
+</body>
+</html>

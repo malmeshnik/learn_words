@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Слова кімнати</title>
+    <style>
+        /* Стили */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .room-select {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .word-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            background-color: #fafafa;
+            margin-bottom: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .word-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .word-label {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .word-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #007bff;
+        }
+
+        .word-text {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .add-word-btn, .add-btn {
+            background-color: #007bff;
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: block;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .add-word-btn:hover, .add-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #message {
+            text-align: center;
+            color: green;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        #wordErrorMessage {
+            color: red;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #addWordForm {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        #addWordForm input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            width: 60%;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        #addWordForm input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        /* Спінер */
+        #loadingSpinner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="loadingSpinner">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <h1>Слова для кімнати "{{ room.name }}"</h1>
+
+        <form id="wordSelectionForm">
+            <ul id="wordList">
+                {% for word in words %}
+                    <li class="word-item">
+                        <label class="word-label">
+                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
+                            <span class="word-text">{{ word.en }} - {{ word.ru }}</span>
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+
+        <h2>Ваші слова в кімнаті "{{ room.name }}"</h2>
+
+            <ul id="userWordList">
+                {% for word in user_words %}
+                    <li class="word-item">
+                        <label class="word-label">
+                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
+                            <span class="word-text">{{ word.en }} - {{ word.ru }}</span>
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% csrf_token %}
+            <button type="button" onclick="addSelectedWords()" class="add-btn">Додати обрані до мого списку</button>
+        </form>
+
+        <div id="message"></div>
+    </div>
+
+    <!-- Форма для додавання нового слова -->
+    <div id="addWordForm">
+        {% csrf_token %}
+        <input type="text" id="wordEn" placeholder="Введіть слово англійською" required>
+        <button class='add-word-btn' onclick="submitNewWord()">Додати слово</button>
+        <p id="wordErrorMessage"></p>
+    </div>
+
+    <script>
+        // Функція для показу спінера перед переходом на іншу сторінку
+        function showSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'flex';
+        }
+
+        // Функція для приховування спінера після завантаження нової сторінки
+        window.addEventListener('load', function() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        });
+
+        function submitNewWord() {
+            var roomId = "{{ room.id }}";
+            var wordEn = document.getElementById('wordEn').value;
+            var errorMessage = document.getElementById('wordErrorMessage');
+
+            if (wordEn.trim() !== '') {
+                var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/add_word/', true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.onload = function () {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        var wordList = document.getElementById('userWordList');
+                        var newLi = document.createElement('li');
+                        var newLabel = document.createElement('label');
+                        var newCheckbox = document.createElement('input');
+                        var NewSpan = document.createElement('span');
+
+                        newLi.classList.add('word-item');
+                        newLabel.classList.add('word-label');
+                        newCheckbox.classList.add('word-checkbox');
+                        NewSpan.classList.add('word-text');
+
+                        newCheckbox.type = 'checkbox';
+                        newCheckbox.name = 'selected_words';
+                        newCheckbox.value = response.id;
+
+                        var labelText = document.createTextNode(' ' + response.en + ' - ' + response.ru);
+
+                        newLabel.appendChild(newCheckbox);
+                        newLabel.appendChild(NewSpan);
+                        NewSpan.appendChild(labelText);
+                        newLi.appendChild(newLabel);
+                        wordList.appendChild(newLi);
+
+                        document.getElementById('wordEn').value = '';
+                        errorMessage.textContent = '';
+                    } else {
+                        errorMessage.textContent = response.error;
+                    }
+                };
+                xhr.send('csrfmiddlewaretoken=' + encodeURIComponent(csrfToken) + 
+                         '&room_id=' + encodeURIComponent(roomId) + 
+                         '&room_name=' + encodeURIComponent("{{ room.name }}") +
+                         '&en=' + encodeURIComponent(wordEn));
+            } else {
+                errorMessage.textContent = 'Будь ласка, введіть слово!';
+            }
+        }
+
+        function addSelectedWords() {
+            const selected = Array.from(document.querySelectorAll('input[name="selected_words"]:checked'))
+                .map(cb => cb.value);
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // Показуємо спінер
+            showSpinner();
+
+            fetch("{% url 'add_selected_words' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({word_ids: selected}),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("message").innerText = "Слова додано до вашого списку!";
+                    window.location.href = "/categories/"; // Переходимо на сторінку
+                } else {
+                    document.getElementById("message").innerText = "Помилка при додаванні.";
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

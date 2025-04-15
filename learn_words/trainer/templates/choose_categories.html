@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Вибір категорії слів</title>
+    <link rel="stylesheet" href="/static/css/choose_categories.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Оберіть категорії та слова для вивчення</h1>
+        <form method="post" action="{% url 'learn_words' %}">
+            {% csrf_token %}
+            <div class="categories">
+                {% for category in categories %}
+                <div class="category-block">
+                    <div class="category-header">
+                        <strong>{{ category.name }}</strong>
+                        <button type="button" onclick="toggleWords('{{ category.id }}')" class="toggle-btn">
+                            Показати / Приховати слова
+                        </button>
+                    </div>
+                    <div id="words-{{ category.id }}" class="words-list hidden">
+                        {% for word in category.words %}
+                        <label class="word-item">
+                            <input type="checkbox" name="words" value="{{ word.id }}" data-category="{{ category.id }}">
+                            {{ word.word }}
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="add-word-form">
+                        <input type="text" placeholder="Додати слово..." id="input-{{ category.id }}">
+                        <button type="button" onclick="addWord('{{ category.id }}')">➕</button>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+            <div class="submit-block">
+                <button type="submit" onclick="addSelectedWords()">Почати вивчення</button>
+            </div>
+        </form>
+
+        <div id="message" style="margin-top: 1rem; color: green;"></div>
+    </div>
+
+    <script>
+        function toggleWords(id) {
+            const block = document.getElementById('words-' + id);
+            block.classList.toggle('hidden');
+        }
+
+        function addSelectedWords() {
+            const checkboxes = document.querySelectorAll('input[name="words"]:checked');
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+            if (checkboxes.length === 0) {
+                document.getElementById("message").innerText = "Вибери хоча б одне слово!";
+                return;
+            }
+    
+            const categorizedWords = {};
+    
+            checkboxes.forEach(cb => {
+                const category = cb.dataset.category;
+                if (!categorizedWords[category]) {
+                    categorizedWords[category] = [];
+                }
+                categorizedWords[category].push(cb.value);
+            });
+    
+            {% comment %} showSpinner(); {% endcomment %}
+    
+            fetch("{% url 'add_selected_categories' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ words_by_category: categorizedWords }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("message").innerText = "Слова додано до вашого списку!";
+                    setTimeout(() => {
+                        window.location.href = "/learn/";
+                    }, 1000);
+                } else {
+                    document.getElementById("message").innerText = "Помилка при додаванні.";
+                }
+            })
+            .catch(err => {
+                document.getElementById("message").innerText = "Сталася помилка на сервері.";
+                console.error(err);
+            });
+        }
+        
+        function addWord(categoryId) {
+            const input = document.getElementById('input-' + categoryId);
+            const word = input.value.trim();
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+            if (!word) {
+                alert("Введи слово!");
+                return;
+            }
+        
+            fetch("/add_word_to_category/", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ word: word, category_id: categoryId }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Додаємо нове слово в DOM
+                    const wordList = document.getElementById('words-' + categoryId);
+                    const newLabel = document.createElement('label');
+                    newLabel.classList.add('word-item');
+                    newLabel.innerHTML = `
+                        <input type="checkbox" name="words" value="${data.word_id}" data-category="${categoryId}">
+                        ${word}
+                    `;
+                    wordList.appendChild(newLabel);
+                    input.value = "";
+                } else {
+                    alert("Помилка при додаванні слова");
+                }
+            });
+        }
+        
+    </script>
+</body>
+</html>
