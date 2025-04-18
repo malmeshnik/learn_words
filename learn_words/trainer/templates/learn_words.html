@@ -136,6 +136,7 @@
         async function showSentences() {
             let index = 0;
             const settings = getDelaySettings();
+            const hideTranslation = document.getElementById('hideTranslation').checked;
             // Перебираємо всі речення для поточного слова
             for (const word of words) {
                 for (const sentence of sentences) {
@@ -152,11 +153,11 @@
                             // Виводимо переклад на російській мові
                             document.getElementById('translationBox').textContent = sentence.translate;
 
-                            // Озвучуємо переклад на російській мові
                             if (!hideTranslation) {
-                                await playAudio(`/media/audio/sentences/ru/${word.id}.mp3`);
-                                await sleep(1000);
+                                await playAudio(`/media/audio/sentence/ru/sentence_${sentence.id}_${word.id}_ru.mp3`);
                             }
+
+                            await sleep(settings.pauseBetween);
                         }
                     }
                 }

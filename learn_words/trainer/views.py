@@ -273,7 +273,7 @@ def save_user_settings(request):
                 'hide_translation': hide_translation,
             }
         )
-
+        
         return JsonResponse({'success': True})
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
