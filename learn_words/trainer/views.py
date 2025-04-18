@@ -184,6 +184,7 @@ def learn_words(request):
     # Якщо налаштування не знайдено, створюємо нові
     if not user_settings:
         user_settings = save_user_settings(request)
+        user_settings = UserSettings.objects.filter(user=request.user).first()
 
     # Створюємо словник для категорій
     for category_id, ids in selected_words_by_category.items():
@@ -250,9 +251,9 @@ def learn_words(request):
 def save_user_settings(request):
     if request.method == 'POST':
         # Перетворюємо байтовий потік в JSON
-        if request.body:
+        try:
             data = json.loads(request.body)
-        else:
+        except:
             data = {}
 
         # Отримуємо налаштування користувача
@@ -260,8 +261,8 @@ def save_user_settings(request):
         print(user_settings)
 
         repeat_count = user_settings.get('repetitions', 1)
-        pause_between = float(user_settings.get('pauseBetween', 1)) / 1000
-        delay_before_translation = float(user_settings.get('delayBeforeTranslation', 0.5)) / 1000
+        pause_between = float(user_settings.get('pauseBetween', 1000)) / 1000
+        delay_before_translation = float(user_settings.get('delayBeforeTranslation', 500)) / 1000
         hide_translation = user_settings.get('hide_translation', False)
 
         print(repeat_count, pause_between, delay_before_translation, hide_translation)
