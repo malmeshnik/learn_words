@@ -16,7 +16,8 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('categories/', views.choose_category, name='categories'),
-    path('add_word_to_category/', views.add_word_to_category, name='add_word_to_category')
+    path('add_word_to_category/', views.add_word_to_category, name='add_word_to_category'),
+    path('save_user_settings/', views.save_user_settings, name='save_user_settings')
 ]
 
 if settings.DEBUG:

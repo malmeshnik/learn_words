@@ -1,0 +1,185 @@
+body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    padding: 40px;
+    background-color: #f4f7f6;
+    color: #333;
+}
+
+h2 {
+    font-size: 36px;
+    color: #1e88e5;
+}
+
+.control-inputs {
+    margin: 30px 0;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.control-inputs input, select {
+    margin: 10px 0;
+    padding: 10px;
+    font-size: 16px;
+    width: 220px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.control-inputs input:focus, select:focus {
+    outline: none;
+    border-color: #1e88e5;
+}
+
+#startBtn {
+    font-size: 20px;
+    padding: 12px 24px;
+    background-color: #1e88e5;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#startBtn:hover {
+    background-color: #1565c0;
+}
+
+.word-box {
+    font-size: 36px;
+    margin: 40px 0;
+    font-weight: bold;
+    color: #1e88e5;
+}
+
+.translation {
+    font-size: 28px;
+    color: #388e3c;
+    margin-bottom: 20px;
+}
+
+.result-buttons button {
+    font-size: 18px;
+    padding: 10px 20px;
+    margin: 10px;
+    background-color: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.result-buttons button:hover {
+    background-color: #388e3c;
+}
+
+.words-container {
+    display: flex;
+    flex-direction: column-reverse;
+    margin-top: 30px;
+}
+
+.word-item {
+    padding: 12px;
+    background-color: #fff;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+    font-size: 18px;
+}
+
+.word-item:hover {
+    background-color: #e3f2fd;
+}
+
+.word-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #1e88e5;
+    margin-right: 10px;
+}
+
+.word-text {
+    color: #333;
+    font-weight: bold;
+}
+
+.completed-message {
+    font-size: 24px;
+    color: #555;
+    margin-top: 40px;
+}
+
+/* Адаптивність для менших екранів */
+@media (max-width: 768px) {
+    h2 {
+        font-size: 28px;
+    }
+
+    .control-inputs input, select {
+        width: 180px;
+    }
+
+    .word-box {
+        font-size: 28px;
+    }
+
+    .translation {
+        font-size: 24px;
+    }
+
+    .result-buttons button {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+
+    .word-item {
+        font-size: 16px;
+    }
+
+    #startBtn {
+        width: 100%;
+        padding: 12px 0;
+    }
+
+    .words-container {
+        margin-top: 20px;
+    }
+}
+
+/* Адаптивність для мобільних пристроїв */
+@media (max-width: 480px) {
+    body {
+        padding: 20px;
+    }
+
+    h2 {
+        font-size: 24px;
+    }
+
+    .control-inputs input, select {
+        width: 100%;
+    }
+
+    .word-box {
+        font-size: 24px;
+    }
+
+    .translation {
+        font-size: 20px;
+    }
+
+    .result-buttons button {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+
+    .word-item {
+        font-size: 14px;
+    }
+}

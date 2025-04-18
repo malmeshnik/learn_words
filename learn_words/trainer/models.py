@@ -1,6 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+class UserSettings(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=False, null=False)
+    repeat_count = models.SmallIntegerField(default=1)
+    pause_between = models.FloatField(default=1)
+    delay_before_translation = models.FloatField(default=0.5)
+    hide_translation = models.BooleanField(default=False)
+
 class Room(models.Model):
     name = models.CharField(max_length=255)
     user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)

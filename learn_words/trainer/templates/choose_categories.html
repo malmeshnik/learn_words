@@ -49,18 +49,18 @@
             const block = document.getElementById('words-' + id);
             block.classList.toggle('hidden');
         }
-
+        
         function addSelectedWords() {
             const checkboxes = document.querySelectorAll('input[name="words"]:checked');
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    
+        
             if (checkboxes.length === 0) {
                 document.getElementById("message").innerText = "Вибери хоча б одне слово!";
                 return;
             }
-    
+        
             const categorizedWords = {};
-    
+        
             checkboxes.forEach(cb => {
                 const category = cb.dataset.category;
                 if (!categorizedWords[category]) {
@@ -68,9 +68,9 @@
                 }
                 categorizedWords[category].push(cb.value);
             });
-    
-            {% comment %} showSpinner(); {% endcomment %}
-    
+        
+            // showSpinner();
+        
             fetch("{% url 'add_selected_categories' %}", {
                 method: 'POST',
                 headers: {
@@ -132,7 +132,6 @@
                 }
             });
         }
-        
     </script>
 </body>
 </html>

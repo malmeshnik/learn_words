@@ -18,6 +18,7 @@ from .models import Room, Word, SentenceTemplate
 
 from .models import (Room, 
                      Word,
+                     UserSettings,
                      N1,
                      N2,
                      N3,
@@ -114,12 +115,12 @@ def user_room_words(request, room_id):
     
 
 @login_required
-@csrf_exempt  # Если нет других возможностей избежать этого, оставляем
+@csrf_exempt 
 def add_word(request):
     if request.method == 'POST':
         room_id = request.POST.get('room_id')
-        word_en = request.POST.get('en')  # Английское слово
-        word_ru = get_translate(word_en)  # Перевод
+        word_en = request.POST.get('en')  
+        word_ru = get_translate(word_en)
         
         room = get_object_or_404(Room, id=room_id)
 
@@ -171,11 +172,20 @@ def add_word_to_category(request):
 
 def learn_words(request):
     selected_word_ids = request.session.get('selected_words', [])
-    selected_words_by_category = request.session.get('selected_categories', [])
+    selected_words_by_category = request.session.get('selected_categories', {})
     words = Word.objects.filter(id__in=selected_word_ids)
+    
+    # Отримуємо налаштування користувача
+    user_settings = UserSettings.objects.filter(user=request.user).first()  # Беремо перше значення, якщо є
+    
     sentences = SentenceTemplate.objects.all()
     word_dict = {}
 
+    # Якщо налаштування не знайдено, створюємо нові
+    if not user_settings:
+        user_settings = save_user_settings(request)
+
+    # Створюємо словник для категорій
     for category_id, ids in selected_words_by_category.items():
         model_name = f"N{category_id}"  # Формуємо назву моделі
         try:
@@ -184,7 +194,6 @@ def learn_words(request):
         except LookupError:
             print(f"Модель {model_name} не знайдена!")
             word_dict[category_id] = []
-
 
     result_words = []
     result_sentences = []  # Лист для збереження речень
@@ -209,8 +218,8 @@ def learn_words(request):
             for placeholder in placeholders:
                 category = placeholder.strip('{}')
                 if category in word_dict and word_dict[category]:
-                    print(f'Категория: {len(selected_words_by_category)}  Предложение: {len(template.strip().split(' '))}')
-                    if len(selected_words_by_category) + 1 < len(template.strip().split(' ')):
+                    print(f'Категория: {len(selected_words_by_category)}  Предложение: {len(template.strip().split(" "))}')
+                    if len(selected_words_by_category) + 1 < len(template.strip().split(" ")):
                         pass
                     else:
                         category_word = random.choice(word_dict[category])
@@ -234,8 +243,40 @@ def learn_words(request):
 
     return render(request, 'learn_words.html', {
         'words': result_words,
-        'sentence': result_sentences  # передаємо правильні речення
+        'sentence': result_sentences,
+        'user_settings': user_settings,
     })
+
+def save_user_settings(request):
+    if request.method == 'POST':
+        # Перетворюємо байтовий потік в JSON
+        data = json.loads(request.body)
+
+        # Отримуємо налаштування користувача
+        user_settings = data.get('user_settings', {})
+        print(user_settings)
+
+        repeat_count = user_settings.get('repetitions', 1)
+        pause_between = float(user_settings.get('pauseBetween', 1)) / 1000
+        delay_before_translation = float(user_settings.get('delayBeforeTranslation', 0.5)) / 1000
+        hide_translation = user_settings.get('hide_translation', False)
+
+        print(repeat_count, pause_between, delay_before_translation, hide_translation)
+
+        # Оновлюємо або створюємо нові налаштування
+        user_settings_instance, created = UserSettings.objects.update_or_create(
+            user=request.user,
+            defaults={
+                'repeat_count': repeat_count,
+                'pause_between': pause_between,
+                'delay_before_translation': delay_before_translation,
+                'hide_translation': hide_translation,
+            }
+        )
+
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 def choose_category(request):
     categories = [
