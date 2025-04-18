@@ -250,7 +250,10 @@ def learn_words(request):
 def save_user_settings(request):
     if request.method == 'POST':
         # Перетворюємо байтовий потік в JSON
-        data = json.loads(request.body)
+        if request.body:
+            data = json.loads(request.body)
+        else:
+            data = {}
 
         # Отримуємо налаштування користувача
         user_settings = data.get('user_settings', {})
@@ -273,7 +276,7 @@ def save_user_settings(request):
                 'hide_translation': hide_translation,
             }
         )
-        
+
         return JsonResponse({'success': True})
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
