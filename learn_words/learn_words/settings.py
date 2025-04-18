@@ -32,7 +32,8 @@ ALLOWED_HOSTS = ['2686-91-229-122-68.ngrok-free.app',
 
 CSRF_TRUSTED_ORIGINS = [
     "https://2686-91-229-122-68.ngrok-free.app",
-    "91.239.206.123:11661"
+    'http://91.239.206.123:11661',
+    'http://91.239.206.123',
 ]
 
 # Application definition
