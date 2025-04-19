@@ -17,7 +17,11 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('categories/', views.choose_category, name='categories'),
     path('add_word_to_category/', views.add_word_to_category, name='add_word_to_category'),
-    path('save_user_settings/', views.save_user_settings, name='save_user_settings')
+    path('save_user_settings/', views.save_user_settings, name='save_user_settings'),
+    path('delete_room_word/', views.delete_room_word, name='delete_room_word'),
+    path('edit_word/', views.edit_room_word, name='edit_word'),
+    path('delete_word_simple/', views.delete_word_simple, name='delete_word_simple'),
+    path('edit_word_simple/', views.delete_word_simple, name='edit_word_simple')
 ]
 
 if settings.DEBUG:

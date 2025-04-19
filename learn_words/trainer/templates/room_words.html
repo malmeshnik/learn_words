@@ -62,6 +62,7 @@
             cursor: pointer;
             font-size: 16px;
             color: #555;
+            width: 100%;
         }
 
         .word-checkbox {
@@ -73,6 +74,29 @@
         .word-text {
             color: #333;
             font-weight: 500;
+            flex-grow: 1;
+        }
+
+        .edit-word, .delete-word {
+            cursor: pointer;
+            padding: 5px 10px;
+            margin-left: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .edit-word {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .delete-word {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .edit-word:hover, .delete-word:hover {
+            opacity: 0.8;
         }
 
         .add-word-btn, .add-btn {
@@ -137,6 +161,7 @@
             display: none;
             justify-content: center;
             align-items: center;
+            z-index: 1000;
         }
 
         .spinner {
@@ -153,12 +178,83 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Модальне вікно для редагування слова */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 60%;
+            border-radius: 10px;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: black;
+        }
+
+        .modal-form {
+            margin-top: 20px;
+        }
+
+        .modal-form input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .modal-form button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .modal-form button:hover {
+            background-color: #45a049;
+        }
+
     </style>
 </head>
 <body>
 
     <div id="loadingSpinner">
         <div class="spinner"></div>
+    </div>
+
+    <!-- Модальне вікно для редагування слова -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            <h2>Редагувати слово</h2>
+            <form id="editWordForm" class="modal-form">
+                <input type="hidden" id="editWordId">
+                <input type="text" id="editWordEn" placeholder="Слово англійською">
+                <button type="button" onclick="saveEditedWord()">Зберегти</button>
+            </form>
+        </div>
     </div>
 
     <div class="container">
@@ -184,6 +280,8 @@
                         <label class="word-label">
                             <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
                             <span class="word-text">{{ word.en }} - {{ word.ru }}</span>
+                            <div class='edit-word' onclick="editWord({{ word.id }}, '{{ word.en }}', '{{ word.ru }}')">редагувати</div>
+                            <div class='delete-word' onclick="deleteWord({{ word.id }})">видалити</div>
                         </label>
                     </li>
                 {% endfor %}
@@ -233,22 +331,32 @@
                         var newLi = document.createElement('li');
                         var newLabel = document.createElement('label');
                         var newCheckbox = document.createElement('input');
-                        var NewSpan = document.createElement('span');
+                        var newSpan = document.createElement('span');
+                        var editDiv = document.createElement('div');
+                        var deleteDiv = document.createElement('div');
 
                         newLi.classList.add('word-item');
                         newLabel.classList.add('word-label');
                         newCheckbox.classList.add('word-checkbox');
-                        NewSpan.classList.add('word-text');
+                        newSpan.classList.add('word-text');
+                        editDiv.classList.add('edit-word');
+                        deleteDiv.classList.add('delete-word');
 
                         newCheckbox.type = 'checkbox';
                         newCheckbox.name = 'selected_words';
                         newCheckbox.value = response.id;
 
-                        var labelText = document.createTextNode(' ' + response.en + ' - ' + response.ru);
+                        newSpan.textContent = response.en + ' - ' + response.ru;
+                        editDiv.textContent = 'редагувати';
+                        deleteDiv.textContent = 'видалити';
+
+                        editDiv.onclick = function() { editWord(response.id, response.en, response.ru); };
+                        deleteDiv.onclick = function() { deleteWord(response.id); };
 
                         newLabel.appendChild(newCheckbox);
-                        newLabel.appendChild(NewSpan);
-                        NewSpan.appendChild(labelText);
+                        newLabel.appendChild(newSpan);
+                        newLabel.appendChild(editDiv);
+                        newLabel.appendChild(deleteDiv);
                         newLi.appendChild(newLabel);
                         wordList.appendChild(newLi);
 
@@ -267,9 +375,120 @@
             }
         }
 
+        function editWord(wordId, wordEn) {
+            // Заповнюємо форму даними слова
+            document.getElementById('editWordId').value = wordId;
+            document.getElementById('editWordEn').value = wordEn;
+            
+            // Відкриваємо модальне вікно
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function saveEditedWord() {
+            const wordId = document.getElementById('editWordId').value;
+            const wordEn = document.getElementById('editWordEn').value;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            if (wordEn.trim() === '') {
+                alert('Будь ласка, заповніть поле!');
+                return;
+            }
+            
+            showSpinner();
+            
+            fetch("{% url 'edit_word' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({
+                    wordId: wordId,
+                    en: wordEn
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Оновлюємо відображення слова на сторінці
+                    const wordItems = document.querySelectorAll('.word-item');
+                    for (let item of wordItems) {
+                        const checkbox = item.querySelector('input[type="checkbox"]');
+                        if (checkbox && checkbox.value == wordId) {
+                            const wordText = item.querySelector('.word-text');
+                            wordText.textContent = `${data.word.en} - ${data.word.ru}`;
+                            break;
+                        }
+                    }
+                    
+                    document.getElementById("message").innerText = "Слово успішно оновлено!";
+                    closeEditModal();
+                } else {
+                    document.getElementById("message").innerText = "Помилка при оновленні слова.";
+                }
+                document.getElementById('loadingSpinner').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById("message").innerText = "Помилка при оновленні слова.";
+                document.getElementById('loadingSpinner').style.display = 'none';
+            });
+        }
+
+        function deleteWord(wordId) {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            if (confirm('Ви дійсно бажаєте видалити це слово?')) {
+                showSpinner();
+                
+                fetch("{% url 'delete_room_word' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({wordId: wordId})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById("message").innerText = "Слово видалено з вашого списку!";
+                        
+                        // Видаляємо елемент з DOM
+                        const wordItems = document.querySelectorAll('.word-item');
+                        for (let item of wordItems) {
+                            const checkbox = item.querySelector('input[type="checkbox"]');
+                            if (checkbox && checkbox.value == wordId) {
+                                item.remove();
+                                break;
+                            }
+                        }
+                    } else {
+                        document.getElementById("message").innerText = "Помилка при видаленні.";
+                    }
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById("message").innerText = "Помилка при видаленні.";
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                });
+            }
+        }
+
         function addSelectedWords() {
             const selected = Array.from(document.querySelectorAll('input[name="selected_words"]:checked'))
                 .map(cb => cb.value);
+                
+            if (selected.length === 0) {
+                document.getElementById("message").innerText = "Будь ласка, виберіть слова для додавання.";
+                return;
+            }
+            
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             // Показуємо спінер
@@ -290,8 +509,22 @@
                     window.location.href = "/categories/"; // Переходимо на сторінку
                 } else {
                     document.getElementById("message").innerText = "Помилка при додаванні.";
+                    document.getElementById('loadingSpinner').style.display = 'none';
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById("message").innerText = "Помилка при додаванні.";
+                document.getElementById('loadingSpinner').style.display = 'none';
             });
+        }
+
+        // Закривання модального вікна при кліку поза ним
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
         }
     </script>
 

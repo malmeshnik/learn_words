@@ -13,12 +13,12 @@ from gtts import gTTS
 from pathlib import Path
 import requests
 import random
-
-from .models import Room, Word, SentenceTemplate
+import re
 
 from .models import (Room, 
                      Word,
                      UserSettings,
+                     SentenceTemplate,
                      N1,
                      N2,
                      N3,
@@ -136,7 +136,100 @@ def add_word(request):
                 "en": word.en,
                 "ru": word.ru 
             })
+
+@login_required
+def delete_room_word(request):
+    body = request.body.decode('utf-8')
+    data = json.loads(body)
+    word_id = data.get('wordId')
+    print(word_id)
+
+    Word.objects.filter(id=word_id).delete()
+
+    return JsonResponse({'success': True})
+
+@csrf_exempt
+@login_required
+def edit_room_word(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            word_id = data.get('wordId')
+            en = data.get('en')
+            ru = get_translate(en)
+
+            if not word_id or not en:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            word = Word.objects.get(id=word_id, user=request.user)  # якщо є прив'язка до користувача
+            word.en = en
+            word.ru = ru
+            word.save()
+
+            return JsonResponse({
+                'success': True,
+                'word': {
+                    'id': word.id,
+                    'en': word.en,
+                    'ru': word.ru,
+                }
+            })
         
+        except Word.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Слово не знайдено'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+    
+def get_category_model(category_id):
+    from django.apps import apps
+    try:
+        return apps.get_model('trainer', f'N{category_id}')
+    except LookupError:
+        return None
+        
+@csrf_exempt
+@login_required
+def edit_word_simple(request):
+    data = json.loads(request.body)
+    word_id = data.get('word_id')
+    category_id = data.get('category_id')
+    new_word = data.get('word')
+
+    Model = get_category_model(category_id)
+    if not Model:
+        return JsonResponse({'success': False, 'error': 'Модель не знайдено'})
+
+    try:
+        word = Model.objects.get(id=word_id)
+        word.word = new_word
+        word.save()
+        return JsonResponse({'success': True})
+    except Model.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Слово не знайдено'})
+
+@csrf_exempt
+@login_required
+def delete_word_simple(request):
+    data = json.loads(request.body)
+    word_id = data.get('word_id')
+    category_id = data.get('category_id')
+
+    print(category_id)
+
+    Model = get_category_model(category_id)
+    if not Model:
+        return JsonResponse({'success': False, 'error': 'Модель не знайдено'})
+
+    try:
+        word = Model.objects.get(id=word_id)
+        print(word)
+        word.delete()
+        return JsonResponse({'success': True})
+    except Model.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Слово не знайдено'})
+
 
 @csrf_exempt
 def add_selected_words(request):
@@ -176,7 +269,7 @@ def learn_words(request):
     words = Word.objects.filter(id__in=selected_word_ids)
     
     # Отримуємо налаштування користувача
-    user_settings = UserSettings.objects.filter(user=request.user).first()  # Беремо перше значення, якщо є
+    user_settings = UserSettings.objects.filter(user=request.user).first()
     
     sentences = SentenceTemplate.objects.all()
     word_dict = {}
@@ -188,17 +281,22 @@ def learn_words(request):
 
     # Створюємо словник для категорій
     for category_id, ids in selected_words_by_category.items():
-        model_name = f"N{category_id}"  # Формуємо назву моделі
+        model_name = f"N{category_id}"
         try:
             Model = apps.get_model(app_label='trainer', model_name=model_name)
             word_dict[category_id] = list(Model.objects.filter(id__in=ids))
+            print(f"Категорія {category_id}: знайдено {len(word_dict[category_id])} слів")
         except LookupError:
             print(f"Модель {model_name} не знайдена!")
             word_dict[category_id] = []
 
     result_words = []
-    result_sentences = []  # Лист для збереження речень
-
+    result_sentences = []
+    
+    # Перевіряємо, що є вибрані слова
+    if not words:
+        print("Немає вибраних слів")
+    
     for word in words:
         generate_mp3_if_needed(word.id, word.en, 'en', 'en')
         generate_mp3_if_needed(word.id, word.ru, 'ru', 'ru')
@@ -207,41 +305,57 @@ def learn_words(request):
             'en': word.en,
             'ru': word.ru,
         })
-
-        # Для кожного слова беремо лише два відповідних речення
+        
+        # Для кожного слова беремо відповідні речення
+        sentence_count = 0
         for sentence in sentences:
-            template = sentence.template  # Наприклад: "I want to {verb} a {noun}"
-            placeholders = [word[1] for word in list(filter(lambda w: w[0] == '{' and w[-1] == '}', template.split()))]
-
+            if sentence_count >= 2:  # Обмеження на 2 речення для слова
+                break
+                
+            template = sentence.template
+            # Вилучаємо плейсхолдери з шаблону (як в оригінальному коді)
+            placeholders = [word[1:-1] for word in re.findall(r'\{[^{}]+\}', template)]
+            
             replaced_en = template
             replacements = {}
-
+            
+            # Замінюємо спочатку {word} на поточне слово
+            replaced_en = replaced_en.replace('{word}', word.en)
+            
+            # Спробуємо заповнити всі плейсхолдери
+            has_unfilled = False
             for placeholder in placeholders:
-                category = placeholder.strip('{}')
-                if category in word_dict and word_dict[category]:
-                    print(f'Категория: {len(selected_words_by_category)}  Предложение: {len(template.strip().split(" "))}')
-                    if len(selected_words_by_category) + 1 < len(template.strip().split(" ")):
-                        pass
-                    else:
-                        category_word = random.choice(word_dict[category])
-                        replacements[category] = category_word.word
-                        replaced_en = replaced_en.replace(f"{{{category}}}", category_word.word)
-                        replaced_en = replaced_en.replace('{word}', word.en)
+                if placeholder == 'word':  # Пропускаємо, оскільки вже замінили
+                    continue
+                    
+                if placeholder in word_dict and word_dict[placeholder]:
+                    category_word = random.choice(word_dict[placeholder])
+                    replacements[placeholder] = category_word.word
+                    replaced_en = replaced_en.replace(f"{{{placeholder}}}", category_word.word)
+                else:
+                    print(f"Не знайдено слів для категорії '{placeholder}'")
+                    has_unfilled = True
+            
+            # Перевіряємо чи залишились незаповнені плейсхолдери
+            if not has_unfilled and not re.search(r'\{[^{}]+\}', replaced_en):
+                if replaced_en not in [s['template'] for s in result_sentences]:
+                    # Переклад + озвучка
+                    text_ru = get_translate(replaced_en)
+                    generate_sentence_mp3(replaced_en, word, 'en', sentence.id)
+                    generate_sentence_mp3(text_ru, word, 'ru', sentence.id)
+                    
+                    # Додаємо у результат
+                    result_sentences.append({
+                        'id': sentence.id,
+                        'template': replaced_en,
+                        'translate': text_ru
+                    })
+                    sentence_count += 1
+            else:
+                print(f"Речення пропущено: {replaced_en} (є незаповнені плейсхолдери)")
 
-            if replaced_en not in [s['template'] for s in result_sentences]:
-                # Переклад + озвучка
-                text_ru = get_translate(replaced_en)
-                # Генерація mp3 для цього речення
-                generate_sentence_mp3(replaced_en, word, 'en', sentence.id)
-                generate_sentence_mp3(text_ru, word, 'ru', sentence.id)
-
-                # Додаємо у результат речення
-                result_sentences.append({
-                    'id': sentence.id,
-                    'template': replaced_en,
-                    'translate': text_ru
-                })
-
+    print(f"Додано {len(result_words)} слів і {len(result_sentences)} речень")
+    
     return render(request, 'learn_words.html', {
         'words': result_words,
         'sentence': result_sentences,

@@ -8,36 +8,37 @@
 <body>
     <div class="container">
         <h1>Оберіть категорії та слова для вивчення</h1>
-        <form method="post" action="{% url 'learn_words' %}">
+        <form method="post" action="{% url 'learn_words' %}" id="word-form">
             {% csrf_token %}
             <div class="categories">
                 {% for category in categories %}
                 <div class="category-block">
                     <div class="category-header">
                         <strong>{{ category.name }}</strong>
-                        <button type="button" onclick="toggleWords('{{ category.id }}')" class="toggle-btn">
-                            Показати / Приховати слова
-                        </button>
+                        <button type="button" class="toggle-btn" data-id="{{ category.id }}">Показати / Приховати слова</button>
                     </div>
+
                     <div id="words-{{ category.id }}" class="words-list hidden">
                         {% for word in category.words %}
-                        <label class="word-item">
+                        <div class="word-item" data-word-id="{{ word.id }}">
                             <input type="checkbox" name="words" value="{{ word.id }}" data-category="{{ category.id }}">
-                            {{ word.word }}
-                        </label>
+                            <span class="word-text" id="word-text-{{ word.id }}">{{ word.word }}</span>
+
+                            <button type="button" class="edit-btn" data-word-id="{{ word.id }}" data-word="{{ word.word|escapejs }}" data-category-id="{{ category.id }}">Редагувати</button>
+                            <button type="button" class="delete-btn" data-word-id="{{ word.id }}" data-category-id="{{ category.id }}">Видалити</button>
+                        </div>
                         {% endfor %}
                     </div>
 
                     <div class="add-word-form">
                         <input type="text" placeholder="Додати слово..." id="input-{{ category.id }}">
-                        <button type="button" onclick="addWord('{{ category.id }}')">➕</button>
+                        <button type="button" class="add-btn" data-category-id="{{ category.id }}">➕</button>
                     </div>
-
                 </div>
                 {% endfor %}
             </div>
             <div class="submit-block">
-                <button type="submit" onclick="addSelectedWords()">Почати вивчення</button>
+                <button type="submit">Почати вивчення</button>
             </div>
         </form>
 
@@ -45,93 +46,157 @@
     </div>
 
     <script>
-        function toggleWords(id) {
-            const block = document.getElementById('words-' + id);
-            block.classList.toggle('hidden');
-        }
-        
-        function addSelectedWords() {
-            const checkboxes = document.querySelectorAll('input[name="words"]:checked');
+        document.addEventListener("DOMContentLoaded", () => {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        
-            if (checkboxes.length === 0) {
-                document.getElementById("message").innerText = "Вибери хоча б одне слово!";
-                return;
-            }
-        
-            const categorizedWords = {};
-        
-            checkboxes.forEach(cb => {
-                const category = cb.dataset.category;
-                if (!categorizedWords[category]) {
-                    categorizedWords[category] = [];
-                }
-                categorizedWords[category].push(cb.value);
+
+            // Показати / приховати слова
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id;
+                    document.getElementById('words-' + id).classList.toggle('hidden');
+                });
             });
-        
-            // showSpinner();
-        
-            fetch("{% url 'add_selected_categories' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify({ words_by_category: categorizedWords }),
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById("message").innerText = "Слова додано до вашого списку!";
-                    setTimeout(() => {
-                        window.location.href = "/learn/";
-                    }, 1000);
-                } else {
-                    document.getElementById("message").innerText = "Помилка при додаванні.";
-                }
-            })
-            .catch(err => {
-                document.getElementById("message").innerText = "Сталася помилка на сервері.";
-                console.error(err);
+
+            // Додати слово
+            document.querySelectorAll('.add-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const categoryId = btn.dataset.categoryId;
+                    const input = document.getElementById('input-' + categoryId);
+                    const word = input.value.trim();
+
+                    if (!word) return alert("Введи слово!");
+
+                    fetch("/add_word_to_category/", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({ word, category_id: categoryId }),
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const wordList = document.getElementById('words-' + categoryId);
+                            const wordItem = document.createElement('div');
+                            wordItem.classList.add('word-item');
+                            wordItem.setAttribute('data-word-id', data.word_id);
+                            wordItem.innerHTML = `
+                                <input type="checkbox" name="words" value="${data.word_id}" data-category="${categoryId}">
+                                <span class="word-text" id="word-text-${data.word_id}">${word}</span>
+                                <button type="button" class="edit-btn" data-word-id="${data.word_id}" data-word="${word}" data-category-id="${categoryId}">Редагувати</button>
+                                <button type="button" class="delete-btn" data-word-id="${data.word_id}" data-category-id="${categoryId}">Видалити</button>
+                            `;
+                            wordList.appendChild(wordItem);
+                            input.value = "";
+                        } else {
+                            alert("Помилка при додаванні слова");
+                        }
+                    });
+                });
             });
-        }
-        
-        function addWord(categoryId) {
-            const input = document.getElementById('input-' + categoryId);
-            const word = input.value.trim();
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        
-            if (!word) {
-                alert("Введи слово!");
-                return;
-            }
-        
-            fetch("/add_word_to_category/", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify({ word: word, category_id: categoryId }),
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    // Додаємо нове слово в DOM
-                    const wordList = document.getElementById('words-' + categoryId);
-                    const newLabel = document.createElement('label');
-                    newLabel.classList.add('word-item');
-                    newLabel.innerHTML = `
-                        <input type="checkbox" name="words" value="${data.word_id}" data-category="${categoryId}">
-                        ${word}
-                    `;
-                    wordList.appendChild(newLabel);
-                    input.value = "";
-                } else {
-                    alert("Помилка при додаванні слова");
+
+            // Редагувати слово
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-btn')) {
+                    const wordId = e.target.dataset.wordId;
+                    const currentText = e.target.dataset.word;
+                    const categoryId = e.target.dataset.categoryId;
+                    const newText = prompt("Редагувати слово:", currentText);
+                    if (!newText || newText.trim() === "") return;
+
+                    fetch("/edit_word_simple/", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({ word_id: wordId, word: newText.trim(), category_id: categoryId })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('word-text-' + wordId).innerText = newText.trim();
+                            e.target.dataset.word = newText.trim(); // Оновити текст в атрибуті
+                        } else {
+                            alert("Помилка при редагуванні слова");
+                        }
+                    })
+                    .catch(err => console.error("Серверна помилка:", err));
                 }
             });
-        }
+
+            // Видалити слово
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    if (!confirm("Точно видалити це слово?")) return;
+
+                    const wordId = e.target.dataset.wordId;
+                    const categoryId = e.target.dataset.categoryId;
+
+                    fetch("/delete_word_simple/", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({ word_id: wordId, category_id: categoryId })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.querySelector(`[data-word-id="${wordId}"]`).remove();
+                        } else {
+                            alert("Помилка при видаленні слова");
+                        }
+                    })
+                    .catch(err => console.error("Серверна помилка:", err));
+                }
+            });
+
+            // Відправка вибраних слів
+            const form = document.getElementById("word-form");
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const checkboxes = document.querySelectorAll('input[name="words"]:checked');
+
+                if (checkboxes.length === 0) {
+                    document.getElementById("message").innerText = "Вибери хоча б одне слово!";
+                    return;
+                }
+
+                const categorizedWords = {};
+                checkboxes.forEach(cb => {
+                    const category = cb.dataset.category;
+                    if (!categorizedWords[category]) categorizedWords[category] = [];
+                    categorizedWords[category].push(cb.value);
+                });
+
+                fetch("{% url 'add_selected_categories' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ words_by_category: categorizedWords }),
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById("message").innerText = "Слова додано до вашого списку!";
+                        setTimeout(() => {
+                            window.location.href = "/learn/";
+                        }, 1000);
+                    } else {
+                        document.getElementById("message").innerText = "Помилка при додаванні.";
+                    }
+                })
+                .catch(err => {
+                    console.error("Серверна помилка:", err);
+                    document.getElementById("message").innerText = "Серверна помилка";
+                });
+            });
+        });
     </script>
 </body>
 </html>
