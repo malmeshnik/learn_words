@@ -23,6 +23,10 @@
             <input type="number" id="delayBeforeTranslation" value="{{ user_settings.delay_before_translation }}" min="0.5">
         </div>
         <div>
+            <label for="playbackSpeed">🎚️ Швидкість озвучування:</label><br>
+            <input type="number" id="playbackSpeed" value="{{ user_settings.playback_speed|default:1 }}" min="0.5" max="2" step="0.1">
+        </div>
+        <div>
             <label>
                 <input type="checkbox" id="hideTranslation", value="{{ user_settings.hide_translation }}">
                 ❌ Не показувати переклад
@@ -69,14 +73,15 @@
         }
                 
         // Функція для відтворення аудіо
-        async function playAudio(src) {
+        async function playAudio(src, speed = 1.0) {
             return new Promise((resolve) => {
-            audioPlayer.src = src;
-            audioPlayer.play().then(() => {
-            audioPlayer.onended = resolve;
-            }).catch((err) => {
-                console.warn("Audio play error:", err);
-                resolve(); // Щоб не зависало
+                audioPlayer.src = src;
+                audioPlayer.playbackRate = speed;
+                audioPlayer.play().then(() => {
+                    audioPlayer.onended = resolve;
+                }).catch((err) => {
+                    console.warn("Audio play error:", err);
+                    resolve(); // не зависаємо
                 });
             });
         }
@@ -99,13 +104,13 @@
                 document.getElementById('wordBox').textContent = word.en;
                 document.getElementById('translationBox').textContent = "";
         
-                await playAudio(`/media/audio/en/${word.id}.mp3`);
+                await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
                 await sleep(settings.delayBeforeTranslation);
 
                 document.getElementById('translationBox').textContent = word.ru;
         
                 if (!hideTranslation) {
-                    await playAudio(`/media/audio/ru/${word.id}.mp3`);
+                    await playAudio(`/media/audio/ru/${word.id}.mp3`, settings.playbackSpeed);
                 }
         
                 await sleep(settings.pauseBetween);
@@ -147,14 +152,14 @@
                             document.getElementById('translationBox').textContent = "";
 
                             // Озвучуємо речення на англійській мові
-                            await playAudio(`/media/audio/sentence/en/sentence_${sentence.id}_${word.id}_en.mp3`);
+                            await playAudio(`/media/audio/sentence/en/sentence_${sentence.id}_${word.id}_en.mp3`, settings.playbackSpeed);
                             await sleep(settings.delayBeforeTranslation);
 
                             // Виводимо переклад на російській мові
                             document.getElementById('translationBox').textContent = sentence.translate;
 
                             if (!hideTranslation) {
-                                await playAudio(`/media/audio/sentence/ru/sentence_${sentence.id}_${word.id}_ru.mp3`);
+                                await playAudio(`/media/audio/sentence/ru/sentence_${sentence.id}_${word.id}_ru.mp3`, settings.playbackSpeed);
                             }
 
                             
@@ -210,7 +215,8 @@
             return {
                 repetitions: parseInt(document.getElementById('repeatCount').value) || 1,
                 pauseBetween: parseFloat(document.getElementById('pauseBetween').value) * 1000 || 1000,
-                delayBeforeTranslation: parseFloat(document.getElementById('delayBeforeTranslation').value) * 1000 || 1000
+                delayBeforeTranslation: parseFloat(document.getElementById('delayBeforeTranslation').value) * 1000 || 1000,
+                playbackSpeed: parseFloat(document.getElementById('playbackSpeed').value) || 1
             };
         }
 
@@ -218,7 +224,8 @@
             const settings = {
                 repetitions: parseInt(document.getElementById('repeatCount').value),
                 pauseBetween: parseFloat(document.getElementById('pauseBetween').value),
-                delayBeforeTranslation: parseFloat(document.getElementById('delayBeforeTranslation').value)
+                delayBeforeTranslation: parseFloat(document.getElementById('delayBeforeTranslation').value),
+                playbackSpeed: parseFloat(document.getElementById('playbackSpeed').value)
             };
             sessionStorage.setItem('wordSettings', JSON.stringify(settings));
         }

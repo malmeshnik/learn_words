@@ -7,6 +7,7 @@ class UserSettings(models.Model):
     pause_between = models.FloatField(default=1)
     delay_before_translation = models.FloatField(default=0.5)
     hide_translation = models.BooleanField(default=False)
+    playback_speed = models.FloatField(default=1)
 
 class Room(models.Model):
     name = models.CharField(max_length=255)
