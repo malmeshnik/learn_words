@@ -207,7 +207,8 @@
         
             for (let i = 0; i < settings.repetitions; i++) {
                 await waitWhilePaused();
-
+        
+                document.getElementById('wordBox').textContent = "";
                 document.getElementById('translationBox').textContent = "";
         
                 if (enableSentenceAudio) {
