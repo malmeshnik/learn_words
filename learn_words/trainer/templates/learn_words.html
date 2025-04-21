@@ -162,14 +162,14 @@
                 document.getElementById('translationBox').textContent = "";
         
                 if (enableWordAudio) {
-                    await playAudio(`/media/audio/en/${word.id}.mp3`);
+                    await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
                 }
                 await sleep(settings.delayBeforeTranslation);
 
                 document.getElementById('translationBox').textContent = word.ru;
         
                 if (!hideTranslation && enableWordAudio) {
-                    await playAudio(`/media/audio/ru/${word.id}.mp3`);
+                    await playAudio(`/media/audio/ru/${word.id}.mp3`, settings.playbackSpeed);
                 }
         
                 await sleep(settings.pauseBetween);
@@ -212,13 +212,13 @@
                 document.getElementById('translationBox').textContent = "";
         
                 if (enableSentenceAudio) {
-                    await playAudio(`/media/audio/sentence/en/sentence_${sentence.id}_${word.id}_en.mp3`);
+                    await playAudio(`/media/audio/sentence/en/sentence_${sentence.id}_${word.id}_en.mp3`, settings.playbackSpeed);
                 }
         
                 await sleep(settings.delayBeforeTranslation);
         
                 if (!hideTranslation && enableSentenceAudio) {
-                    await playAudio(`/media/audio/sentence/ru/sentence_${sentence.id}_${word.id}_ru.mp3`);
+                    await playAudio(`/media/audio/sentence/ru/sentence_${sentence.id}_${word.id}_ru.mp3`, settings.playbackSpeed);
                 }
         
                 await sleep(settings.pauseBetween);
