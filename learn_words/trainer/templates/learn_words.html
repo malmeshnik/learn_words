@@ -57,7 +57,7 @@
     </div>
 
     <div class="sentence-controls" id="sentenceControls" style="display: none;">
-        <button onclick="prevSentence()">⏪ Попереднє речення</button>
+        <button id="backButton" onclick="prevSentence()">⏪ Попереднє речення</button>
         <button onclick="togglePause()"><span id="pauseBtnLabel">⏸️ Пауза</span></button>
     </div>
 
@@ -77,13 +77,14 @@
 
     <script>
         let isPaused = false;
-        let sentenceIndex = 0; // для навігації по реченнях
+        let currentIndex = 0; // для навігації по реченнях
         let currentSentences = []; // масив речень для поточного слова
         let timer;
         const pauseAfterSentence = 3000;
+        let autoSwitch = true;
 
         const words = {{ words|safe }};
-        const sentences = {{ sentence|safe }};
+        const sentences = {{ sentences|safe }};
         let index = 0;
         const audioPlayer = document.getElementById('audioPlayer');
 
@@ -165,11 +166,10 @@
                     await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
                 }
                 await sleep(settings.delayBeforeTranslation);
-
-                document.getElementById('translationBox').textContent = word.ru;
         
                 if (!hideTranslation && enableWordAudio) {
                     await playAudio(`/media/audio/ru/${word.id}.mp3`, settings.playbackSpeed);
+                    document.getElementById('translationBox').textContent = word.ru;
                 }
         
                 await sleep(settings.pauseBetween);
@@ -194,71 +194,42 @@
             document.getElementById('wordsContainer').appendChild(wordElement);
         
             index++;
-        }
-
-        async function playCurrentSentence() {
+        }    
+        
+        async function updateSentence() {
             const settings = getDelaySettings();
             const hideTranslation = document.getElementById('hideTranslation').checked;
             const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
         
-            const current = currentSentences[sentenceIndex];
-            const word = current.word;
-            const sentence = current.sentence;
-        
             for (let i = 0; i < settings.repetitions; i++) {
-                await waitWhilePaused();
-        
-                document.getElementById('wordBox').textContent = "";
-                document.getElementById('translationBox').textContent = "";
-        
+                if (currentIndex < 0) currentIndex = 0;
+                if (currentIndex >= sentences.length) currentIndex = sentences.length - 1;
+
+                const sentence = sentences[currentIndex];
+
                 if (enableSentenceAudio) {
-                    await playAudio(`/media/audio/sentence/en/sentence_${sentence.id}_${word.id}_en.mp3`, settings.playbackSpeed);
+                    document.getElementById('wordBox').textContent = sentence.template;
+                    await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
                 }
         
                 await sleep(settings.delayBeforeTranslation);
         
                 if (!hideTranslation && enableSentenceAudio) {
-                    await playAudio(`/media/audio/sentence/ru/sentence_${sentence.id}_${word.id}_ru.mp3`, settings.playbackSpeed);
+                    await playAudio(`/${sentence.path_to_ru}`, settings.playbackSpeed);
+                    document.getElementById('translationBox').textContent = sentence.translate;
                 }
-        
+
                 await sleep(settings.pauseBetween);
             }
-        }        
+
+            currentIndex++
+        }
         
-            
-        async function showSentences() {
-            const settings = getDelaySettings();
-            const wordsUsed = [];
-        
-            currentSentences = [];
-        
-            const currentWord = words[index - 1];  // беремо попереднє слово
-            for (const sentence of sentences) {
-                if (sentence.template.includes(currentWord.en)) {
-                    currentSentences.push({ word: currentWord, sentence });
-                }
-            }
-                    
-            sentenceIndex = 0;
-            const el = document.getElementById("sentenceControls")
-            
-            if (el) {
-                el.style.display = "block";
-            } else {
-                console.error("Елемент #some-id не знайдено");
-            }
-            
-            while (sentenceIndex < currentSentences.length) {
-                await playCurrentSentence();
-                sentenceIndex++;
-            }
-        
-            document.getElementById('wordBox').textContent = "Готово! 🎉";
-            document.getElementById('translationBox').textContent = "";
-            document.getElementById("mainMenuButton").style.display = "block";
-            document.getElementById("restartButton").style.display = "block";
-        }        
-        
+        document.getElementById('backButton').addEventListener('click', () => {
+            currentIndex--; // Зменшуємо індекс для переходу до попереднього речення
+            updateSentence(); // Оновлюємо відображення та програвання аудіо
+        });
+ 
         async function saveUserSettings() {
             const settings = getDelaySettings();
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -289,7 +260,10 @@
             while (index < words.length) {
                 await showWord();
             }
-            await showSentences();
+            while (currentIndex < sentences.length) {
+                await updateSentence();
+            }
+            
             document.getElementById('wordBox').textContent = "Готово! 🎉";
             document.getElementById('translationBox').textContent = "";
             document.getElementById('restartButton').style.display = 'block';

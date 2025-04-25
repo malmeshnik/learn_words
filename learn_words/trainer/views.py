@@ -14,6 +14,7 @@ from pathlib import Path
 import requests
 import random
 import re
+from itertools import product
 
 from .models import (Room, 
                      Word,
@@ -262,41 +263,34 @@ def add_word_to_category(request):
         
     return JsonResponse({'success': False, "error": 'Invalid method'})
 
-
 def learn_words(request):
     selected_word_ids = request.session.get('selected_words', [])
     selected_words_by_category = request.session.get('selected_categories', {})
-    words = Word.objects.filter(id__in=selected_word_ids)
-    
-    # Отримуємо налаштування користувача
     user_settings = UserSettings.objects.filter(user=request.user).first()
-    
-    sentences = SentenceTemplate.objects.all()
-    word_dict = {}
 
-    # Якщо налаштування не знайдено, створюємо нові
+    words = Word.objects.filter(id__in=selected_word_ids)
+    sentences = SentenceTemplate.objects.all()
+
     if not user_settings:
         user_settings = save_user_settings(request)
         user_settings = UserSettings.objects.filter(user=request.user).first()
 
-    # Створюємо словник для категорій
+    # Завантаження слів по категоріях
+    word_dict = {}
     for category_id, ids in selected_words_by_category.items():
         model_name = f"N{category_id}"
         try:
             Model = apps.get_model(app_label='trainer', model_name=model_name)
             word_dict[category_id] = list(Model.objects.filter(id__in=ids))
-            print(f"Категорія {category_id}: знайдено {len(word_dict[category_id])} слів")
         except LookupError:
-            print(f"Модель {model_name} не знайдена!")
             word_dict[category_id] = []
 
     result_words = []
     result_sentences = []
-    
-    # Перевіряємо, що є вибрані слова
+
     if not words:
         print("Немає вибраних слів")
-    
+
     for word in words:
         generate_mp3_if_needed(word.id, word.en, 'en', 'en')
         generate_mp3_if_needed(word.id, word.ru, 'ru', 'ru')
@@ -305,60 +299,57 @@ def learn_words(request):
             'en': word.en,
             'ru': word.ru,
         })
-        
-        # Для кожного слова беремо відповідні речення
-        sentence_count = 0
-        for sentence in sentences:
-            if sentence_count >= 2:  # Обмеження на 2 речення для слова
-                break
-                
-            template = sentence.template
-            # Вилучаємо плейсхолдери з шаблону (як в оригінальному коді)
-            placeholders = [word[1:-1] for word in re.findall(r'\{[^{}]+\}', template)]
-            
-            replaced_en = template
-            replacements = {}
-            
-            # Замінюємо спочатку {word} на поточне слово
-            replaced_en = replaced_en.replace('{word}', word.en)
-            
-            # Спробуємо заповнити всі плейсхолдери
-            has_unfilled = False
-            for placeholder in placeholders:
-                if placeholder == 'word':  # Пропускаємо, оскільки вже замінили
-                    continue
-                    
-                if placeholder in word_dict and word_dict[placeholder]:
-                    category_word = random.choice(word_dict[placeholder])
-                    replacements[placeholder] = category_word.word
-                    replaced_en = replaced_en.replace(f"{{{placeholder}}}", category_word.word)
-                else:
-                    print(f"Не знайдено слів для категорії '{placeholder}'")
-                    has_unfilled = True
-            
-            # Перевіряємо чи залишились незаповнені плейсхолдери
-            if not has_unfilled and not re.search(r'\{[^{}]+\}', replaced_en):
-                if replaced_en not in [s['template'] for s in result_sentences]:
-                    # Переклад + озвучка
-                    text_ru = get_translate(replaced_en)
-                    generate_sentence_mp3(replaced_en, word, 'en', sentence.id)
-                    generate_sentence_mp3(text_ru, word, 'ru', sentence.id)
-                    
-                    # Додаємо у результат
-                    result_sentences.append({
-                        'id': sentence.id,
-                        'template': replaced_en,
-                        'translate': text_ru
-                    })
-                    sentence_count += 1
-            else:
-                print(f"Речення пропущено: {replaced_en} (є незаповнені плейсхолдери)")
 
-    print(f"Додано {len(result_words)} слів і {len(result_sentences)} речень")
-    
+        for sentence in sentences:
+            template = sentence.template
+            placeholders = [ph[1:-1] for ph in re.findall(r'\{[^{}]+\}', template)]
+
+            # Перевіряємо, чи є всі вибрані категорії у шаблоні
+            required_placeholders = list(selected_words_by_category.keys())
+            if not all(ph in placeholders for ph in required_placeholders):
+                print(f"Пропускаємо шаблон {template} — не всі категорії є у шаблоні")
+                continue
+
+            # Всі інші плейсхолдери, крім "word"
+            other_placeholders = [ph for ph in placeholders if ph != 'word']
+
+            # Підбираємо варіанти заміни для кожного плейсхолдера
+            replacement_lists = []
+            for ph in other_placeholders:
+                if ph in word_dict and word_dict[ph]:
+                    replacement_lists.append(word_dict[ph])
+                else:
+                    print(f"Пропускаємо шаблон {template} — немає слів для '{ph}'")
+                    replacement_lists = []
+                    break
+
+            if not replacement_lists:
+                continue
+
+            for combo in product(*replacement_lists):
+                replaced_en = template.replace('{word}', word.en)
+                for i, ph in enumerate(other_placeholders):
+                    replaced_en = replaced_en.replace(f'{{{ph}}}', combo[i].word)
+
+                if not re.search(r'\{[^{}]+\}', replaced_en):
+                    if replaced_en not in [s['template'] for s in result_sentences]:
+                        text_ru = get_translate(replaced_en)
+                        path_to_en = generate_sentence_mp3(replaced_en, 'en', sentence.id)
+                        path_to_ru = generate_sentence_mp3(text_ru, 'ru', sentence.id)
+
+                        result_sentences.append({
+                            'id': sentence.id,
+                            'template': replaced_en,
+                            'translate': text_ru,
+                            'path_to_en': path_to_en,
+                            'path_to_ru': path_to_ru
+                        })
+
+    print(f"Згенеровано {len(result_sentences)} речень для {len(result_words)} слів")
+
     return render(request, 'learn_words.html', {
         'words': result_words,
-        'sentence': result_sentences,
+        'sentences': result_sentences,
         'user_settings': user_settings,
     })
 
@@ -456,12 +447,14 @@ def generate_mp3_if_needed(word_id, text, lang, subfolder):
         tts = gTTS(text=text, lang=lang)
         tts.save(str(path))
 
-def generate_sentence_mp3(sentence, word, lang, sentence_id):
-    file_path = f"media/audio/sentence/{lang}/sentence_{sentence_id}_{word.id}_{lang}.mp3"
+def generate_sentence_mp3(sentence, lang, sentence_id):
+    file_path = f"media/audio/sentence/{lang}/sentence_{sentence_id}_{sentence}_{lang}.mp3"
     path = Path(file_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tts = gTTS(text=sentence, lang=lang)
     tts.save(file_path)
+
+    return file_path
 
 def get_translate(text: str) -> str:
     url = "https://google-translate-official.p.rapidapi.com/translate"
