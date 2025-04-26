@@ -450,9 +450,11 @@ def generate_mp3_if_needed(word_id, text, lang, subfolder):
 def generate_sentence_mp3(sentence, lang, sentence_id):
     file_path = f"media/audio/sentence/{lang}/sentence_{sentence_id}_{sentence}_{lang}.mp3"
     path = Path(file_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tts = gTTS(text=sentence, lang=lang)
-    tts.save(file_path)
+
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tts = gTTS(text=sentence, lang=lang)
+        tts.save(file_path)
 
     return file_path
 

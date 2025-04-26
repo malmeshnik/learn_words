@@ -115,6 +115,36 @@ h2 {
     margin-top: 40px;
 }
 
+.sentence-controls {
+    display: none;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.sentence-controls button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    min-width: 140px;
+}
+
+.sentence-controls button:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}
+
+.sentence-controls button:active {
+    background-color: #3e8e41;
+    transform: scale(0.97);
+}
+
 /* Адаптивність для менших екранів */
 @media (max-width: 768px) {
     h2 {
@@ -149,6 +179,17 @@ h2 {
 
     .words-container {
         margin-top: 20px;
+    }
+
+    .sentence-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .sentence-controls button {
+        width: 80%;
+        font-size: 18px;
+        padding: 14px 0;
     }
 }
 
