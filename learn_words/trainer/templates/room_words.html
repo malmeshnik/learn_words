@@ -273,14 +273,17 @@
             </ul>
 
         <h2>Ваші слова в кімнаті "{{ room.name }}"</h2>
-
             <ul id="userWordList">
                 {% for word in user_words %}
                     <li class="word-item">
                         <label class="word-label">
                             <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
-                            <span class="word-text">{{ word.en }} - {{ word.ru }}</span>
-                            <div class='edit-word' onclick="editWord({{ word.id }}, '{{ word.en }}', '{{ word.ru }}')">редагувати</div>
+                            <div class="word-text">
+                                <span class="word-en" id="wordEn">{{ word.en }}</span>
+                                <span> - </span>
+                                <span class="word-ru" id="wordRu">{{ word.ru }}</span>
+                            </div>
+                            <div class='edit-word' id="editWord">редагувати</div>
                             <div class='delete-word' onclick="deleteWord({{ word.id }})">видалити</div>
                         </label>
                     </li>
@@ -288,7 +291,10 @@
             </ul>
 
             {% csrf_token %}
-            <button type="button" onclick="addSelectedWords()" class="add-btn">Додати обрані до мого списку</button>
+            <div>
+                <button type="button" onclick="toggleSelectAll()" class="add-btn" style="margin-bottom: 20px;">Вибрати все</button>
+                <button type="button" onclick="addSelectedWords()" class="add-btn">Додати обрані до мого списку</button>
+            </div>
         </form>
 
         <div id="message"></div>
@@ -297,16 +303,28 @@
     <!-- Форма для додавання нового слова -->
     <div id="addWordForm">
         {% csrf_token %}
-        <input type="text" id="wordEn" placeholder="Введіть слово англійською" required>
+        <input type="text" id="addWordEn" placeholder="Введіть слово англійською" required>
         <button class='add-word-btn' onclick="submitNewWord()">Додати слово</button>
         <p id="wordErrorMessage"></p>
     </div>
 
     <script>
+        let allSelected = false;
         // Функція для показу спінера перед переходом на іншу сторінку
         function showSpinner() {
             document.getElementById('loadingSpinner').style.display = 'flex';
         }
+
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('.word-checkbox');
+            allSelected = !allSelected;
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = allSelected;
+            });
+        
+            const button = document.querySelector('button[onclick="toggleSelectAll()"]');
+            button.textContent = allSelected ? "Скасувати вибір" : "Вибрати все";
+        }        
 
         // Функція для приховування спінера після завантаження нової сторінки
         window.addEventListener('load', function() {
@@ -315,7 +333,7 @@
 
         function submitNewWord() {
             var roomId = "{{ room.id }}";
-            var wordEn = document.getElementById('wordEn').value;
+            var wordEn = document.getElementById('addWordEn').value;
             var errorMessage = document.getElementById('wordErrorMessage');
 
             if (wordEn.trim() !== '') {
@@ -419,8 +437,10 @@
                     for (let item of wordItems) {
                         const checkbox = item.querySelector('input[type="checkbox"]');
                         if (checkbox && checkbox.value == wordId) {
-                            const wordText = item.querySelector('.word-text');
-                            wordText.textContent = `${data.word.en} - ${data.word.ru}`;
+                            const wordEnText = item.querySelector('.word-en');
+                            const wordRuText = item.querySelector('.word-ru');
+                            wordEnText.textContent = data.word.en;
+                            wordRuText.textContent = data.word.ru;
                             break;
                         }
                     }
@@ -518,6 +538,15 @@
                 document.getElementById('loadingSpinner').style.display = 'none';
             });
         }
+
+        document.querySelectorAll('.edit-word').forEach(button => {
+            button.addEventListener('click', function() {
+                const wordItem = this.closest('.word-label');
+                const wordId = wordItem.querySelector('input[type="checkbox"]').value;
+                const wordEn = wordItem.querySelector('.word-text span#wordEn').textContent;
+                editWord(wordId, wordEn);
+            });
+        });
 
         // Закривання модального вікна при кліку поза ним
         window.onclick = function(event) {
