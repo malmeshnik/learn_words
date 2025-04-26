@@ -16,9 +16,10 @@
                     <div class="category-header">
                         <strong>{{ category.name }}</strong>
                         <button type="button" class="toggle-btn" data-id="{{ category.id }}">Показати / Приховати слова</button>
+                        
                     </div>
 
-                    <div id="words-{{ category.id }}" class="words-list hidden">
+                    <div id="words-{{ category.id }}" class="words-block" style="display: none;">
                         {% for word in category.words %}
                         <div class="word-item" data-word-id="{{ word.id }}">
                             <input type="checkbox" name="words" value="{{ word.id }}" data-category="{{ category.id }}">
@@ -50,12 +51,41 @@
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             // Показати / приховати слова
-            document.querySelectorAll('.toggle-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id;
-                    document.getElementById('words-' + id).classList.toggle('hidden');
+            document.querySelectorAll('.toggle-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const categoryId = e.target.dataset.id;
+                    const wordsBlock = document.getElementById(`words-${categoryId}`);
+            
+                    // Показати / приховати блок слів
+                    if (wordsBlock.style.display === 'none') {
+                        wordsBlock.style.display = 'block';
+            
+                        // Якщо чекбокса ще немає — додаємо
+                        if (!wordsBlock.querySelector('.select-all-block')) {
+                            const selectAllDiv = document.createElement('div');
+                            selectAllDiv.classList.add('select-all-block');
+            
+                            selectAllDiv.innerHTML = `
+                                <input type="checkbox" class="select-all" data-category="${categoryId}" id="select-all-${categoryId}">
+                                <label for="select-all-${categoryId}">Вибрати всі слова</label>
+                            `;
+            
+                            wordsBlock.prepend(selectAllDiv); // додаємо перед словами
+            
+                            // Вішаємо обробку на новий чекбокс
+                            selectAllDiv.querySelector('.select-all').addEventListener('change', (e) => {
+                                const wordCheckboxes = wordsBlock.querySelectorAll('input[type="checkbox"]:not(.select-all)');
+                                wordCheckboxes.forEach(cb => {
+                                    cb.checked = e.target.checked;
+                                });
+                            });
+                        }
+            
+                    } else {
+                        wordsBlock.style.display = 'none';
+                    }
                 });
-            });
+            });            
 
             // Додати слово
             document.querySelectorAll('.add-btn').forEach(btn => {

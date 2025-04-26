@@ -21,7 +21,7 @@ urlpatterns = [
     path('delete_room_word/', views.delete_room_word, name='delete_room_word'),
     path('edit_word/', views.edit_room_word, name='edit_word'),
     path('delete_word_simple/', views.delete_word_simple, name='delete_word_simple'),
-    path('edit_word_simple/', views.delete_word_simple, name='edit_word_simple')
+    path('edit_word_simple/', views.edit_word_simple, name='edit_word_simple')
 ]
 
 if settings.DEBUG:
