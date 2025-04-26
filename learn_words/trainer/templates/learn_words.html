@@ -56,8 +56,10 @@
         
     </div>
 
+    <div class="translation" id="translationBox"></div>
+
     <div class="sentence-controls" id="sentenceControls" style="display: none;">
-        <button id="backButton" onclick="prevSentence()">⏪ Попереднє речення</button>
+        <button id="backButton">⏪ Попереднє речення</button>
         <button onclick="togglePause()"><span id="pauseBtnLabel">⏸️ Пауза</span></button>
     </div>
 
@@ -67,8 +69,6 @@
     <div class="result-buttons" id="restartButton" style="display: none;">
         <button onclick="restartLearning()">Повторити знову</button>
     </div> 
-
-    <div class="translation" id="translationBox"></div>
 
     <h3>Позначте слово яке вже вивчили</h3>
     <div class="words-container" id="wordsContainer"></div>
@@ -82,6 +82,9 @@
         let timer;
         const pauseAfterSentence = 3000;
         let autoSwitch = true;
+        let isPlaying = false;
+        let isContinuingPlayback = false;
+
 
         const words = {{ words|safe }};
         const sentences = {{ sentences|safe }};
@@ -97,26 +100,12 @@
         function togglePause() {
             isPaused = !isPaused;
             document.getElementById("pauseBtnLabel").textContent = isPaused ? '▶️ Продовжити' : '⏸️ Пауза';
-        }
-
-        function prevSentence() {
-            clearTimeout(timer);
-            sentenceIndex--;
-            if (sentenceIndex < 0) sentenceIndex = 0;
-            showSentences(); 
-            startAutoNext(); 
-        }
-
-        function startAutoNext() {
-            clearTimeout(timer); // якщо є старий — зупини
-        
-            timer = setTimeout(() => {
-                sentenceIndex++;
-                if (sentenceIndex < currentSentences.length) {
-                    showSentences();
-                }
-            }, pauseAfterSentence);
-        }
+            
+            if (isPaused) {
+                // Если на паузе, останавливаем текущее аудио
+                stopCurrentAudio();
+            }
+        }        
             
         function triggerAudioPlay() {
             const audio = new Audio(); // Просто створюємо аудіо для ініціалізації
@@ -128,18 +117,35 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
                 
-        // Функція для відтворення аудіо
         async function playAudio(src, speed = 1.0) {
+            // Остановим предыдущее воспроизведение, если оно все еще идет
+            stopCurrentAudio();
+            
             return new Promise((resolve) => {
-                audioPlayer.src = src;
-                audioPlayer.playbackRate = speed;
-                audioPlayer.play().then(() => {
-                    audioPlayer.onended = resolve;
-                }).catch((err) => {
-                    console.warn("Audio play error:", err);
-                    resolve(); // не зависаємо
-                });
+                // Небольшая задержка перед началом нового воспроизведения
+                setTimeout(() => {
+                    audioPlayer.src = src;
+                    audioPlayer.playbackRate = speed;
+                    
+                    isPlaying = true;
+                    
+                    audioPlayer.play().then(() => {
+                        audioPlayer.onended = () => {
+                            isPlaying = false;
+                            resolve();
+                        };
+                    }).catch((err) => {
+                        console.warn("Audio play error:", err);
+                        isPlaying = false;
+                        resolve(); // не зависаем
+                    });
+                }, 100);
             });
+        }        
+
+        function stopCurrentAudio() {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
         }
             
         async function showWord() {
@@ -157,22 +163,24 @@
             const word = words[index];
             const settings = getDelaySettings();
             const hideTranslation = document.getElementById('hideTranslation').checked;
+
+            if (enableWordAudio){
         
-            for (let i = 0; i < settings.repetitions; i++) {
-                document.getElementById('wordBox').textContent = word.en;
-                document.getElementById('translationBox').textContent = "";
-        
-                if (enableWordAudio) {
+                for (let i = 0; i < settings.repetitions; i++) {
+                    document.getElementById('wordBox').textContent = word.en;
+                    document.getElementById('translationBox').textContent = "";
+            
                     await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
+                    
+                    await sleep(settings.delayBeforeTranslation);
+            
+                    if (!hideTranslation) {
+                        await playAudio(`/media/audio/ru/${word.id}.mp3`);
+                        document.getElementById('translationBox').textContent = word.ru;
+                    }
+            
+                    await sleep(settings.pauseBetween);
                 }
-                await sleep(settings.delayBeforeTranslation);
-        
-                if (!hideTranslation && enableWordAudio) {
-                    await playAudio(`/media/audio/ru/${word.id}.mp3`, settings.playbackSpeed);
-                    document.getElementById('translationBox').textContent = word.ru;
-                }
-        
-                await sleep(settings.pauseBetween);
             }
         
             const wordElement = document.createElement('div');
@@ -201,34 +209,81 @@
             const hideTranslation = document.getElementById('hideTranslation').checked;
             const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
         
+            // Проверка на паузу перед началом воспроизведения
+            await waitWhilePaused();
+        
             for (let i = 0; i < settings.repetitions; i++) {
                 if (currentIndex < 0) currentIndex = 0;
                 if (currentIndex >= sentences.length) currentIndex = sentences.length - 1;
-
+        
                 const sentence = sentences[currentIndex];
-
+        
                 if (enableSentenceAudio) {
                     document.getElementById('wordBox').textContent = sentence.template;
                     await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
                 }
         
+                // Снова проверяем паузу
+                await waitWhilePaused();
                 await sleep(settings.delayBeforeTranslation);
         
                 if (!hideTranslation && enableSentenceAudio) {
-                    await playAudio(`/${sentence.path_to_ru}`, settings.playbackSpeed);
+                    await playAudio(`/${sentence.path_to_ru}`);
                     document.getElementById('translationBox').textContent = sentence.translate;
                 }
-
+        
+                await waitWhilePaused();
                 await sleep(settings.pauseBetween);
             }
-
-            currentIndex++
+        
+            currentIndex++;
         }
         
-        document.getElementById('backButton').addEventListener('click', () => {
-            currentIndex--; // Зменшуємо індекс для переходу до попереднього речення
-            updateSentence(); // Оновлюємо відображення та програвання аудіо
-        });
+        document.getElementById('backButton').addEventListener('click', async () => {
+            // Останавливаем текущий воспроизводимый звук
+            stopCurrentAudio();
+            
+            // Если есть запущенный цикл воспроизведения, нужно его прервать
+            if (isContinuingPlayback) {
+                isContinuingPlayback = false;
+                // Даем время остановить все текущие операции
+                await sleep(200);
+            }
+            
+            currentIndex--;
+            console.log(currentIndex)
+            if (currentIndex < 0) currentIndex = 0;
+            console.log(currentIndex)
+            
+            {% comment %} // Запускаем новый цикл для воспроизведения одного предложения
+            await updateSentence();
+             {% endcomment %}
+            // Затем запускаем продолжение воспроизведения
+            PlayingSentences();
+        });        
+
+        // Новая функция для продолжения воспроизведения предложений
+        async function PlayingSentences() {
+            if (isContinuingPlayback) return; // Предотвращает двойной запуск
+            
+            isContinuingPlayback = true;
+            
+            while (isContinuingPlayback && currentIndex < sentences.length) {
+                await updateSentence();
+                // Если процесс был прерван, выходим из цикла
+                if (!isContinuingPlayback) break;
+            }
+            
+            if (isContinuingPlayback) {
+                // Если дошли до конца естественным путем
+                document.getElementById('wordBox').textContent = "Готово! 🎉";
+                document.getElementById('translationBox').textContent = "";
+                document.getElementById('restartButton').style.display = 'block';
+                document.getElementById('mainMenuButton').style.display = 'block';
+            }
+            
+            isContinuingPlayback = false;
+        }        
  
         async function saveUserSettings() {
             const settings = getDelaySettings();
@@ -253,6 +308,9 @@
                 
             
         async function startLearning() {
+            currentIndex = 0;
+            index = 0;
+            
             saveSettingsToSession();
             saveUserSettings();
             document.getElementById('startBtn').style.display = 'none';
@@ -260,9 +318,10 @@
             while (index < words.length) {
                 await showWord();
             }
-            while (currentIndex < sentences.length) {
-                await updateSentence();
-            }
+
+            document.getElementById('sentenceControls').style.display = 'block';
+            
+            await PlayingSentences();
             
             document.getElementById('wordBox').textContent = "Готово! 🎉";
             document.getElementById('translationBox').textContent = "";
@@ -291,6 +350,8 @@
             
         function restartLearning() {
             index = 0;
+            currentIndex = 0;
+
             document.getElementById('restartButton').style.display = 'none';
             document.getElementById('mainMenuButton').style.display = 'none';
             document.getElementById('startBtn').style.display = 'block';
