@@ -366,11 +366,11 @@
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('settingsBlock').style.display = 'none';
             document.getElementById('sentenceControls').style.display = 'block';
-            document.getElementById('pauseBtnLabel').style.display = 'block';
+            document.getElementById('pauseBtnLabel').style.display = 'inline-flex';
 
             if (enableWordAudio) {
                 document.getElementById("backSentenceButton").style.display = 'none';
-                document.getElementById('BackWordButton').style.display = 'block';
+                document.getElementById('BackWordButton').style.display = 'inline-flex';
 
                 await playingWords();
             }
@@ -383,7 +383,7 @@
             
             if (enableSentenceAudio) {
                 document.getElementById("BackWordButton").style.display = 'none';
-                document.getElementById("backSentenceButton").style.display = 'block';
+                document.getElementById("backSentenceButton").style.display = 'inline-flex';
 
                 await PlayingSentences();
             }
