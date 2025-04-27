@@ -65,7 +65,7 @@
     <div class="sentence-controls" id="sentenceControls">
         <button id="backSentenceButton">⏪ Попереднє речення</button>
         <button id="BackWordButton">⏪ Попереднє слово</button>
-        <button onclick="togglePause()"><span id="pauseBtnLabel">⏸️ Пауза</span></button>
+        <button id="pauseBtnLabel" onclick="togglePause()"><span>⏸️ Пауза</span></button>
     </div>
 
     <div class="result-buttons" id="mainMenuButton">
@@ -172,7 +172,7 @@
             await sleep(settings.delayBeforeTranslation);
             await waitWhilePaused();
 
-            if (!hideTranslation) {
+            if (!hideTranslation && isContinuingPlayback) {
                 if (enableWordAudio) {
                     await playAudio(`/media/audio/ru/${word.id}.mp3`);
                 }
@@ -279,6 +279,7 @@
 
         // Новая функция для продолжения воспроизведения предложений
         async function PlayingSentences() {
+
             if (isContinuingPlayback) return;
             
             isContinuingPlayback = true;
@@ -309,11 +310,13 @@
         
         
         async function playingWords() {
+            const enableWordAudio = document.getElementById('enableWordAudio').checked;
+
             if (isContinuingPlayback) return;
 
             isContinuingPlayback = true;
 
-            while (isContinuingPlayback && index < words.length) {
+            while (isContinuingPlayback && index < words.length && enableWordAudio) {
                 await waitWhilePaused();
 
                 // Використовувати нову функцію відтворення замість updateWord
@@ -352,6 +355,9 @@
                 
             
         async function startLearning() {
+            const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
+            const enableWordAudio = document.getElementById('enableWordAudio').checked;
+
             currentIndex = 0;
             index = 0;
 
@@ -360,19 +366,28 @@
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('settingsBlock').style.display = 'none';
             document.getElementById('sentenceControls').style.display = 'block';
-            document.getElementById("backSentenceButton").style.display = 'none';
-            document.getElementById('BackWordButton').style.display = 'block';
             document.getElementById('pauseBtnLabel').style.display = 'block';
 
-            await playingWords();
+            if (enableWordAudio) {
+                document.getElementById("backSentenceButton").style.display = 'none';
+                document.getElementById('BackWordButton').style.display = 'block';
+
+                await playingWords();
+            }
 
             const sentenceValue = parseInt(document.getElementById('sentenceValue').value) || 15;
-            sentences = sentences.slice(0, sentenceValue);
 
-            document.getElementById("BackWordButton").style.display = 'none';
-            document.getElementById("backSentenceButton").style.display = 'block';
+            if (sentenceValue > sentences.length) {
+                sentences = sentences.slice(0, sentenceValue);
+            }
             
-            await PlayingSentences();
+            if (enableSentenceAudio) {
+                document.getElementById("BackWordButton").style.display = 'none';
+                document.getElementById("backSentenceButton").style.display = 'block';
+
+                await PlayingSentences();
+            }
+            
             
             document.getElementById('wordBox').textContent = "Готово! 🎉";
             document.getElementById('translationBox').textContent = "";
