@@ -3,123 +3,23 @@
 {% block title %}Список кімнат{% endblock %}
 
 {% block extra_styles %}
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f7f7f7;
-    }
-
-    .container {
-        max-width: 800px;
-        margin: 20px auto;
-        padding: 20px;
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    h2 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    p {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    .room-list {
-        list-style: none;
-        padding: 0;
-    }
-
-    .room-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px;
-        border-bottom: 1px solid #ddd;
-        background-color: #fafafa;
-        border-radius: 4px;
-        margin-bottom: 10px;
-    }
-
-    .room-item:last-child {
-        border-bottom: none;
-    }
-
-    .room-item a {
-        text-decoration: none;
-        color: #333;
-        font-weight: bold;
-    }
-
-    .room-item a:hover {
-        color: #007bff;
-    }
-
-    .add-room {
-        display: block;
-        text-align: center;
-        margin-top: 20px;
-    }
-
-    .add-room a {
-        text-decoration: none;
-        padding: 10px 20px;
-        background-color: #007bff;
-        color: white;
-        border-radius: 5px;
-        font-weight: bold;
-    }
-
-    .add-room a:hover {
-        background-color: #0056b3;
-    }
-
-    .add-room-form {
-        display: none;
-        margin-top: 20px;
-        text-align: center;
-    }
-
-    .add-room-form input {
-        padding: 8px 15px;
-        font-size: 16px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        margin-right: 10px;
-    }
-
-    .add-room-form button {
-        padding: 8px 15px;
-        background-color: #28a745;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-
-    .add-room-form button:hover {
-        background-color: #218838;
-    }
-
-    .error {
-        color: red;
-        font-size: 14px;
-    }
-</style>
+<link rel="stylesheet" href="/static/css/rooms.css">
 {% endblock %}
 
 {% block content %}
 <div class="container">
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            <h2>Редагувати назву кімнати</h2>
+            <form id="editWordForm" class="modal-form">
+                <input type="hidden" id="editRoomId">
+                <input type="text" id="editRoomName" placeholder="Нова назва кімнати">
+                <button type="button" onclick="saveEditedRoom()">Зберегти</button>
+            </form>
+        </div>
+    </div>
+
     <h1>Список кімнат</h1>
 
     <ul class="room-list" id="roomList">
@@ -136,9 +36,13 @@
     {% if user_rooms %}
         <ul class="room-list" id="roomUserList">
             {% for room in user_rooms %}
-            <li class="room-item">
+            <li class="room-item" data-room-id="{{ room.id }}">
                 <span>{{ room.name }}</span>
-                <a href="{% url 'user_room_words' room.id %}">Переглянути</a>
+                <div class="room-actions">
+                    <button class="edit-room" room-id="{{ room.id }}" room-name="{{ room.name }}">Редагувати</button>
+                    <button class="delete-room" onclick="deleteRoom({{ room.id }})">Видалити</button>
+                    <a href="{% url 'user_room_words' room.id %}">Переглянути</a>
+                </div>
             </li>
             {% endfor %}
         </ul>
@@ -163,6 +67,84 @@
         form.style.display = 'block';
     }
 
+    function editRoom(roomId, roomName) {
+        document.getElementById('editRoomId').value = roomId;
+        document.getElementById('editRoomName').value = roomName;
+
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function saveEditedRoom() {
+        var roomId = document.getElementById('editRoomId').value;
+        var newRoomName = document.getElementById('editRoomName').value;
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        if (newRoomName.trim() !== '') {
+            fetch("{% url 'edit_room' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ room_id: roomId, new_name: newRoomName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const roomItem = document.querySelector(`.room-item[data-room-id="${roomId}"]`);
+                    if (roomItem) {
+                        roomItem.querySelector('span').textContent = newRoomName;
+                    }
+                    closeEditModal();
+                } else {
+                    alert('Не вдалося зберегти зміни: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Сталася помилка при збереженні змін.');
+            });
+        } else {
+            alert('Будь ласка, введіть нову назву кімнати!');
+        }
+    }
+
+    function deleteRoom(roomId) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        if (confirm('Ви впевнені, що хочете видалити цю кімнату?')) {
+            
+            fetch("{% url 'delete_room' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ room_id: roomId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const roomItem = document.querySelector(`.room-item[data-room-id="${roomId}"]`);
+                    console.log
+                    if (roomItem) {
+                        roomItem.remove();
+                    }
+                } else {
+                    alert('Не вдалося видалити кімнату: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Сталася помилка при видаленні кімнати.');
+            });
+        }
+    }
+
     function submitNewRoom() {
         var roomName = document.getElementById('roomName').value;
         var errorMessage = document.getElementById('errorMessage');
@@ -178,7 +160,14 @@
                     var roomList = document.getElementById('roomUserList');
                     var newRoom = document.createElement('li');
                     newRoom.classList.add('room-item');
-                    newRoom.innerHTML = '<span>' + response.room_name + '</span><a href="room/user/' + response.room_id + '">Переглянути</a>';
+                    newRoom.innerHTML += '<span>' + response.room_name + '</span>';
+                    newRoom.appendChild(document.createElement('div')).classList.add('room-actions');
+                    var roomActions = newRoom.querySelector('.room-actions');
+                    roomActions.innerHTML += '<button class="edit-room" room-id="' + response.room_id + '" room-name="' + response.room_name + '">Редагувати</button>';
+                    roomActions.innerHTML += '<button class="delete-room" onclick="deleteRoom(' + response.room_id + ')">Видалити</button>';
+                    roomActions.innerHTML += '<a href="room/user/' + response.room_id + '">Переглянути</a>';
+
+                    newRoom.appendChild(roomActions);
                     roomList.appendChild(newRoom);
                     document.getElementById('roomName').value = '';
                     errorMessage.textContent = '';
@@ -189,6 +178,21 @@
             xhr.send('name=' + encodeURIComponent(roomName));
         } else {
             errorMessage.textContent = 'Будь ласка, введіть назву кімнати!';
+        }
+    }
+
+    document.querySelectorAll('.edit-room').forEach(button => {
+        button.addEventListener('click', function() {
+            const roomId = this.getAttribute('room-id');
+            const roomName = this.getAttribute('room-name');
+            editRoom(roomId, roomName);
+        });
+    });
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('editModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
         }
     }
 </script>

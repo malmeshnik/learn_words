@@ -1,0 +1,235 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f3f4f6;
+    color: #333;
+}
+
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.room-select {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.word-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.word-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #fafafa;
+    margin-bottom: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.word-item:hover {
+    background-color: #f0f0f0;
+}
+
+.room-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Відстань між кнопками і лінкою */
+}
+
+.word-label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #555;
+    width: 100%;
+}
+
+.word-checkbox {
+    width: 20px;
+    height: 20px;
+    accent-color: #007bff;
+}
+
+.word-text {
+    color: #333;
+    font-weight: 500;
+    flex-grow: 1;
+}
+
+.edit-word, .delete-word {
+    cursor: pointer;
+    padding: 5px 10px;
+    margin-left: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.edit-word {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.delete-word {
+    background-color: #f44336;
+    color: white;
+}
+
+.edit-word:hover, .delete-word:hover {
+    opacity: 0.8;
+}
+
+.add-word-btn, .add-btn {
+    background-color: #007bff;
+    color: #fff;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: block;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.add-word-btn:hover, .add-btn:hover {
+    background-color: #0056b3;
+}
+
+#message {
+    text-align: center;
+    color: green;
+    font-size: 16px;
+    margin-top: 20px;
+}
+
+#wordErrorMessage {
+    color: red;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 10px;
+}
+
+#addWordForm {
+    margin-top: 30px;
+    text-align: center;
+}
+
+#addWordForm input {
+    padding: 10px;
+    font-size: 16px;
+    margin: 10px;
+    width: 60%;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+#addWordForm input:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+/* Спінер */
+#loadingSpinner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Модальне вікно для редагування слова */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 60%;
+    border-radius: 10px;
+}
+
+.close-modal {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-modal:hover {
+    color: black;
+}
+
+.modal-form {
+    margin-top: 20px;
+}
+
+.modal-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.modal-form button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.modal-form button:hover {
+    background-color: #45a049;
+}

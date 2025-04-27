@@ -149,6 +149,17 @@ def delete_room_word(request):
 
     return JsonResponse({'success': True})
 
+@login_required
+def delete_room(request):
+    body = request.body.decode('utf-8')
+    data = json.loads(body)
+    word_id = data.get('room_id')
+    print(word_id)
+
+    Room.objects.filter(id=word_id).delete()
+
+    return JsonResponse({'success': True})
+
 @csrf_exempt
 @login_required
 def edit_room_word(request):
@@ -178,6 +189,35 @@ def edit_room_word(request):
         
         except Word.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Слово не знайдено'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+    
+def edit_room(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            room_id = data.get('room_id')
+            new_name = data.get('new_name')
+
+            if not room_id or not new_name:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            room = Room.objects.get(id=room_id, user=request.user)  # якщо є прив'язка до користувача
+            room.name = new_name
+            room.save()
+
+            return JsonResponse({
+                'success': True,
+                'room': {
+                    'id': room.id,
+                    'name': room.name,
+                }
+            })
+        
+        except Room.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Кімната не знайдена'})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     else:
