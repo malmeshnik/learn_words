@@ -116,7 +116,6 @@ h2 {
 }
 
 .sentence-controls {
-    display: none;
     justify-content: center;
     gap: 15px;
     margin-top: 20px;
@@ -124,6 +123,7 @@ h2 {
 }
 
 .sentence-controls button {
+    display: none;
     background-color: #4CAF50;
     color: white;
     border: none;

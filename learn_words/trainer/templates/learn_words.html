@@ -63,7 +63,8 @@
     <div class="translation" id="translationBox"></div>
 
     <div class="sentence-controls" id="sentenceControls">
-        <button id="backButton">⏪ Попереднє речення</button>
+        <button id="backSentenceButton">⏪ Попереднє речення</button>
+        <button id="BackWordButton">⏪ Попереднє слово</button>
         <button onclick="togglePause()"><span id="pauseBtnLabel">⏸️ Пауза</span></button>
     </div>
 
@@ -150,100 +151,113 @@
             audioPlayer.pause();
         }
             
-        async function showWord() {
+        async function playCurrentWord() {
             const enableWordAudio = document.getElementById('enableWordAudio').checked;
 
-            if (index >= words.length) {
-                await showSentences();
-                document.getElementById('wordBox').textContent = "Ви вивчили всі слова!";
-                document.getElementById('translationBox').textContent = "";
-                document.getElementById('mainMenuButton').style.display = 'block';
-                document.getElementById('restartButton').style.display = 'block';
-                return;
-            }
-        
-            const word = words[index];
             const settings = getDelaySettings();
             const hideTranslation = document.getElementById('hideTranslation').checked;
 
-            if (enableWordAudio){
-        
-                for (let i = 0; i < settings.repetitions; i++) {
-                    document.getElementById('wordBox').textContent = word.en;
-                    document.getElementById('translationBox').textContent = "";
-            
-                    await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
-                    
-                    await sleep(settings.delayBeforeTranslation);
-            
-                    if (!hideTranslation) {
-                        await playAudio(`/media/audio/ru/${word.id}.mp3`);
-                        document.getElementById('translationBox').textContent = word.ru;
-                    }
-            
-                    await sleep(settings.pauseBetween);
-                }
+            if (index < 0) index = 0;
+            if (index >= words.length) index = words.length - 1;
+
+            const word = words[index];
+
+            document.getElementById('wordBox').textContent = word.en;
+            document.getElementById('translationBox').textContent = "";
+
+            if (enableWordAudio) {
+                await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
             }
-        
+
+            await sleep(settings.delayBeforeTranslation);
+            await waitWhilePaused();
+
+            if (!hideTranslation) {
+                if (enableWordAudio) {
+                    await playAudio(`/media/audio/ru/${word.id}.mp3`);
+                }
+                document.getElementById('translationBox').textContent = word.ru;
+            }
+
+            await sleep(settings.pauseBetween);
+
             const wordElement = document.createElement('div');
             const wordText = document.createElement('span');
             const checkbox = document.createElement('input');
-        
+
             wordElement.classList.add('word-item');
             wordText.classList.add('word-text');
             checkbox.classList.add('word-checkbox');
-        
+
             wordText.textContent = `${word.en} - ${word.ru}`;
             checkbox.type = 'checkbox';
             checkbox.addEventListener('change', () => {
                 wordElement.style.textDecoration = checkbox.checked ? 'line-through' : 'none';
             });
-        
+
             wordElement.appendChild(checkbox);
             wordElement.appendChild(wordText);
             document.getElementById('wordsContainer').appendChild(wordElement);
-        
-            index++;
         }    
         
-        async function updateSentence() {
+        async function playCurrentSentence() {
             const settings = getDelaySettings();
             const hideTranslation = document.getElementById('hideTranslation').checked;
             const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
-
-            console.log(isPaused)
-            await waitWhilePaused();
-        
-            for (let i = 0; i < settings.repetitions; i++) {
-                if (currentIndex < 0) currentIndex = 0;
-                if (currentIndex >= sentences.length) currentIndex = sentences.length - 1;
-        
-                const sentence = sentences[currentIndex];
-
-                await waitWhilePaused();
-        
-                if (enableSentenceAudio) {
-                    document.getElementById('wordBox').textContent = sentence.template;
-                    await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
-                }
-        
-                await sleep(settings.delayBeforeTranslation);
-                await waitWhilePaused();
-        
-                if (!hideTranslation && enableSentenceAudio) {
-                    await playAudio(`/${sentence.path_to_ru}`);
-                    document.getElementById('translationBox').textContent = sentence.translate;
-                }
-        
-               
-                await sleep(settings.pauseBetween);
-                await waitWhilePaused();
+            
+            // Перевіряємо межі індексу
+            if (currentIndex < 0) currentIndex = 0;
+            if (currentIndex >= sentences.length) currentIndex = sentences.length - 1;
+            
+            const sentence = sentences[currentIndex];
+            
+            // Показуємо англійське речення
+            document.getElementById('wordBox').textContent = sentence.template;
+            document.getElementById('translationBox').textContent = "";
+            
+            // Відтворюємо аудіо речення англійською
+            if (enableSentenceAudio) {
+                await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
             }
-        
-            currentIndex++;
+            
+            // Затримка перед перекладом
+            await sleep(settings.delayBeforeTranslation);
+            await waitWhilePaused();
+            
+            // Показуємо та відтворюємо переклад
+            if (!hideTranslation) {
+                document.getElementById('translationBox').textContent = sentence.translate;
+                
+                if (enableSentenceAudio) {
+                    await playAudio(`/${sentence.path_to_ru}`);
+                }
+            }
+            
+            // Пауза перед наступним реченням/словом
+            await sleep(settings.pauseBetween);
         }
+
+        document.getElementById('BackWordButton').addEventListener('click', async () => {
+            // Останавливаем текущий воспроизводимый звук
+            stopCurrentAudio();
+            
+            // Если есть запущенный цикл воспроизведения, нужно его прервать
+            if (isContinuingPlayback) {
+                isContinuingPlayback = false;
+                // Даем время остановить все текущие операции
+                await sleep(200);
+            }
+            
+            index--;
+            console.log(index)
+            if (index < 0) index = 0;
+            console.log(index)
+            
+            // Запускаем новый цикл для воспроизведения одного слова
+            playingWords();
+        });
         
-        document.getElementById('backButton').addEventListener('click', async () => {
+        document.getElementById('backSentenceButton').addEventListener('click', async () => {
             // Останавливаем текущий воспроизводимый звук
             stopCurrentAudio();
             
@@ -259,29 +273,31 @@
             if (currentIndex < 0) currentIndex = 0;
             console.log(currentIndex)
             
-            {% comment %} // Запускаем новый цикл для воспроизведения одного предложения
-            await updateSentence();
-             {% endcomment %}
             // Затем запускаем продолжение воспроизведения
             PlayingSentences();
         });        
 
         // Новая функция для продолжения воспроизведения предложений
         async function PlayingSentences() {
-            if (isContinuingPlayback) return; // Предотвращает двойной запуск
+            if (isContinuingPlayback) return;
             
             isContinuingPlayback = true;
             
             while (isContinuingPlayback && currentIndex < sentences.length) {
-                console.log(isContinuingPlayback)
                 await waitWhilePaused();
-                await updateSentence();
-                // Если процесс был прерван, выходим из цикла
+                
+                // Використовувати нову функцію відтворення замість updateSentence
+                await playCurrentSentence();
+                
+                // Збільшуємо індекс тільки після повного відтворення
+                currentIndex++;
+                
+                // Якщо процес був перерваний, виходимо з циклу
                 if (!isContinuingPlayback) break;
             }
             
             if (isContinuingPlayback) {
-                // Если дошли до конца естественным путем
+                // Якщо дійшли до кінця природним шляхом
                 document.getElementById('wordBox').textContent = "Готово! 🎉";
                 document.getElementById('translationBox').textContent = "";
                 document.getElementById('restartButton').style.display = 'block';
@@ -289,7 +305,29 @@
             }
             
             isContinuingPlayback = false;
-        }        
+        }
+        
+        
+        async function playingWords() {
+            if (isContinuingPlayback) return;
+
+            isContinuingPlayback = true;
+
+            while (isContinuingPlayback && index < words.length) {
+                await waitWhilePaused();
+
+                // Використовувати нову функцію відтворення замість updateWord
+                await playCurrentWord();
+
+                // Збільшуємо індекс тільки після повного відтворення
+                index++;
+
+                // Якщо процес був перерваний, виходимо з циклу
+                if (!isContinuingPlayback) break;
+            }
+
+            isContinuingPlayback = false;
+        }
  
         async function saveUserSettings() {
             const settings = getDelaySettings();
@@ -316,17 +354,23 @@
         async function startLearning() {
             currentIndex = 0;
             index = 0;
+
             saveSettingsToSession();
             saveUserSettings();
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('settingsBlock').style.display = 'none';
-            while (index < words.length) {
-                await showWord();
-            }
-
             document.getElementById('sentenceControls').style.display = 'block';
+            document.getElementById("backSentenceButton").style.display = 'none';
+            document.getElementById('BackWordButton').style.display = 'block';
+            document.getElementById('pauseBtnLabel').style.display = 'block';
+
+            await playingWords();
+
             const sentenceValue = parseInt(document.getElementById('sentenceValue').value) || 15;
             sentences = sentences.slice(0, sentenceValue);
+
+            document.getElementById("BackWordButton").style.display = 'none';
+            document.getElementById("backSentenceButton").style.display = 'block';
             
             await PlayingSentences();
             
