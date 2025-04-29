@@ -89,15 +89,27 @@
         let autoSwitch = true;
         let isPlaying = false;
         let isContinuingPlayback = false;
+        let stopCurrentTranslation = false;
 
         const words = {{ words|safe }};
         let sentences = {{ sentences|safe }};
         let index = 0;
         const audioPlayer = document.getElementById('audioPlayer');
 
-        async function waitWhilePaused() {
+        async function waitWhilePaused(timer = 200) {
             while (isPaused) {
-                await sleep(200);
+                await sleep(timer);
+            }
+        }
+
+        async function pauseForTranslation(duration = 5000, checkInterval = 200) {
+            let elapsed = 0;
+            while (elapsed < duration) {
+                if (stopCurrentTranslation) {
+                    break; // Если пауза снята — выходим
+                }
+                await sleep(checkInterval);
+                elapsed += checkInterval;
             }
         }
         
@@ -156,6 +168,8 @@
 
             const settings = getDelaySettings();
             const hideTranslation = document.getElementById('hideTranslation').checked;
+            
+            waitWhilePaused();
 
             if (index < 0) index = 0;
             if (index >= words.length) index = words.length - 1;
@@ -169,15 +183,17 @@
                 await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
             }
 
-            await sleep(settings.delayBeforeTranslation);
             await waitWhilePaused();
+            await pauseForTranslation(settings.delayBeforeTranslation, 50);
 
-            if (!hideTranslation && isContinuingPlayback) {
+            if (!hideTranslation) {
                 if (enableWordAudio) {
                     await playAudio(`/media/audio/ru/${word.id}.mp3`);
                 }
                 document.getElementById('translationBox').textContent = word.ru;
             }
+
+            waitWhilePaused();
 
             await sleep(settings.pauseBetween);
 
@@ -205,6 +221,7 @@
             const hideTranslation = document.getElementById('hideTranslation').checked;
             const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
             
+            await waitWhilePaused();
             // Перевіряємо межі індексу
             if (currentIndex < 0) currentIndex = 0;
             if (currentIndex >= sentences.length) currentIndex = sentences.length - 1;
@@ -221,8 +238,8 @@
             }
             
             // Затримка перед перекладом
-            await sleep(settings.delayBeforeTranslation);
             await waitWhilePaused();
+            await pauseForTranslation(settings.delayBeforeTranslation, 50);
             
             // Показуємо та відтворюємо переклад
             if (!hideTranslation) {
@@ -233,6 +250,7 @@
                 }
             }
             
+            waitWhilePaused();
             // Пауза перед наступним реченням/словом
             await sleep(settings.pauseBetween);
         }
@@ -240,6 +258,7 @@
         document.getElementById('BackWordButton').addEventListener('click', async () => {
             // Останавливаем текущий воспроизводимый звук
             stopCurrentAudio();
+            stopCurrentTranslation = true;
             
             // Если есть запущенный цикл воспроизведения, нужно его прервать
             if (isContinuingPlayback) {
@@ -259,6 +278,7 @@
         document.getElementById('backSentenceButton').addEventListener('click', async () => {
             // Останавливаем текущий воспроизводимый звук
             stopCurrentAudio();
+            stopCurrentTranslation = true;
             
             // Если есть запущенный цикл воспроизведения, нужно его прервать
             if (isContinuingPlayback) {
@@ -273,7 +293,7 @@
             
             // Затем запускаем продолжение воспроизведения
             PlayingSentences();
-        });        
+        });
 
         // Новая функция для продолжения воспроизведения предложений
         async function PlayingSentences() {
@@ -284,6 +304,7 @@
             
             while (isContinuingPlayback && currentIndex < sentences.length) {
                 await waitWhilePaused();
+                stopCurrentTranslation = false;
                 
                 // Використовувати нову функцію відтворення замість updateSentence
                 await playCurrentSentence();
@@ -308,14 +329,15 @@
         
         
         async function playingWords() {
-            const enableWordAudio = document.getElementById('enableWordAudio').checked;
 
             if (isContinuingPlayback) return;
 
             isContinuingPlayback = true;
+            
 
-            while (isContinuingPlayback && index < words.length && enableWordAudio) {
+            while (isContinuingPlayback && index < words.length) {
                 await waitWhilePaused();
+                stopCurrentTranslation = false;
 
                 // Використовувати нову функцію відтворення замість updateWord
                 await playCurrentWord();
