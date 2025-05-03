@@ -279,8 +279,10 @@ def add_selected_words(request):
         print(body)
         data = json.loads(body)
         word_ids = data.get('word_ids', [])
+        is_random = data.get('is_random')
 
         request.session['selected_words'] = word_ids
+        request.session['is_random'] = is_random
         request.session.modified = True
 
         return JsonResponse({"success": True}, status=200)
@@ -305,6 +307,9 @@ def add_word_to_category(request):
 
 def learn_words(request):
     selected_word_ids = request.session.get('selected_words', [])
+    random_words = request.session.get('is_random')
+    random_order = request.session.get('is_random_order')
+    print(f"random_order: {random_order}")
     selected_words_by_category = request.session.get('selected_categories', {})
     user_settings = UserSettings.objects.filter(user=request.user).first()
 
@@ -314,14 +319,19 @@ def learn_words(request):
     if not user_settings:
         user_settings = save_user_settings(request)
         user_settings = UserSettings.objects.filter(user=request.user).first()
-
-    # Завантаження слів по категоріях
+    
+    # Загрузка слов по категориям
     word_dict = {}
     for category_id, ids in selected_words_by_category.items():
         model_name = f"N{category_id}"
         try:
             Model = apps.get_model(app_label='trainer', model_name=model_name)
             word_dict[category_id] = list(Model.objects.filter(id__in=ids))
+            # Если режим рандомный, перемешиваем списки слов
+            if random_order[category_id]:
+                import random
+                random.shuffle(word_dict[category_id])
+                print(f"Слова в категорії {category_id} перемішані: {word_dict[category_id]}")
         except LookupError:
             word_dict[category_id] = []
 
@@ -331,7 +341,14 @@ def learn_words(request):
     if not words:
         print("Немає вибраних слів")
 
-    for word in words:
+    # Если режим рандомный, перемешиваем основной список слов
+    word_list = list(words)
+    if random_words:
+        import random
+        random.shuffle(word_list)
+        print("Слова перемішані")
+    
+    for word in word_list:
         generate_mp3_if_needed(word.id, word.en, 'en', 'en')
         generate_mp3_if_needed(word.id, word.ru, 'ru', 'ru')
         result_words.append({
@@ -344,16 +361,16 @@ def learn_words(request):
             template = sentence.template
             placeholders = [ph[1:-1] for ph in re.findall(r'\{[^{}]+\}', template)]
 
-            # Перевіряємо, чи є всі вибрані категорії у шаблоні
+            # Проверяем, есть ли все выбранные категории в шаблоне
             required_placeholders = list(selected_words_by_category.keys())
             if not all(ph in placeholders for ph in required_placeholders):
                 print(f"Пропускаємо шаблон {template} — не всі категорії є у шаблоні")
                 continue
 
-            # Всі інші плейсхолдери, крім "word"
+            # Все другие плейсхолдеры, кроме "word"
             other_placeholders = [ph for ph in placeholders if ph != 'word']
 
-            # Підбираємо варіанти заміни для кожного плейсхолдера
+            # Подбираем варианты замены для каждого плейсхолдера
             replacement_lists = []
             for ph in other_placeholders:
                 if ph in word_dict and word_dict[ph]:
@@ -391,6 +408,7 @@ def learn_words(request):
         'words': result_words,
         'sentences': result_sentences,
         'user_settings': user_settings,
+        # 'is_random': is_random,  # Передаем текущий режим в шаблон
     })
 
 def save_user_settings(request):
@@ -466,12 +484,16 @@ def add_selected_categories(request):
         try:
             data = json.loads(request.body)
             words_by_category = data.get("words_by_category", {})
+            random_order = data.get("random_settings")
 
             # Debug:
             print("Отримано:", words_by_category)
+            print(f"random_sentence: {random_order}")
 
             # Збереження в сесію або обробка для БД
             request.session["selected_categories"] = words_by_category
+            request.session["is_random_order"] = random_order
+            
 
             return JsonResponse({"success": True})
         except Exception as e:

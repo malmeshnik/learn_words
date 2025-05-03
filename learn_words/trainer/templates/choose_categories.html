@@ -13,6 +13,13 @@
             <div class="categories">
                 {% for category in categories %}
                 <div class="category-block">
+                    <div class="random-toggle">
+                        <label>
+                            <input type="checkbox" class="random-checkbox" data-category-id="{{ category.id }}">
+                            Відтворювати слова випадково
+                        </label>
+                    </div>
+                    
                     <div class="category-header">
                         <strong>{{ category.name }}</strong>
                         <button type="button" class="toggle-btn" data-id="{{ category.id }}">Показати / Приховати слова</button>
@@ -186,7 +193,13 @@
 
             // Відправка вибраних слів
             const form = document.getElementById("word-form");
+            
             form.addEventListener("submit", (e) => {
+                const randomSettings = {};
+                document.querySelectorAll('.random-checkbox').forEach(cb => {
+                    const categoryId = cb.dataset.categoryId;
+                    randomSettings[categoryId] = cb.checked;
+                });
                 e.preventDefault();
                 const checkboxes = document.querySelectorAll('input[name="words"]:checked');
 
@@ -208,7 +221,8 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken,
                     },
-                    body: JSON.stringify({ words_by_category: categorizedWords }),
+                    body: JSON.stringify({ words_by_category: categorizedWords,
+                                            random_settings: randomSettings }),
                 })
                 .then(res => res.json())
                 .then(data => {

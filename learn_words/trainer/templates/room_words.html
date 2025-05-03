@@ -28,6 +28,19 @@
     <div class="container">
         <h1>Слова для кімнати "{{ room.name }}"</h1>
 
+        <div class="playback-mode">
+            <h3>Режим відтворення слів</h3>
+            <div class="toggle-switch">
+                <input type="checkbox" id="randomPlayback">
+                <label for="randomPlayback"></label>
+                <span id="playbackModeText">{% if user_settings.random_playback %}Випадковий порядок{% else %}Послідовний порядок{% endif %}</span>
+            </div>
+            <p class="playback-description">
+                <small>Виберіть режим відтворення слів: послідовно або випадково. У випадковому режимі слова будуть вибиратися в довільному порядку.</small>
+            </p>
+        </div>
+
+
         <form id="wordSelectionForm">
             <ul id="wordList">
                 {% for word in words %}
@@ -78,6 +91,7 @@
 
     <script>
         let allSelected = false;
+        let isRandom = false;
         // Функція для показу спінера перед переходом на іншу сторінку
         function showSpinner() {
             document.getElementById('loadingSpinner').style.display = 'flex';
@@ -288,7 +302,8 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken,
                 },
-                body: JSON.stringify({word_ids: selected}),
+                body: JSON.stringify({word_ids: selected,
+                                      is_random: isRandom}),
             })
             .then(res => res.json())
             .then(data => {
@@ -315,6 +330,14 @@
                 editWord(wordId, wordEn);
             });
         });
+
+        document.getElementById('randomPlayback').addEventListener('change', function() {
+            isRandom = this.checked;
+            const modeText = document.getElementById('playbackModeText');
+            modeText.textContent = isRandom ? 'Випадковий порядок' : 'Послідовний порядок';
+            
+        });
+
 
         // Закривання модального вікна при кліку поза ним
         window.onclick = function(event) {

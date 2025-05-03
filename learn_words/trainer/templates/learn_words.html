@@ -37,7 +37,7 @@
             </label>
             <div>
                 <label>
-                    <input type="checkbox" id="enableWordAudio" checked>
+                    <input type="checkbox" id="enableWordAudio">
                     🔊 Озвучувати слова
                 </label>
             </div>
@@ -179,8 +179,13 @@
             document.getElementById('wordBox').textContent = word.en;
             document.getElementById('translationBox').textContent = "";
 
-            if (enableWordAudio) {
-                await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
+            for (let i = 0; i < settings.repetitions; i++) {
+                if (enableWordAudio) {
+                    await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
+                }
+
+                await pauseForTranslation(settings.pauseBetween, 50);
+                await waitWhilePaused();
             }
 
             await waitWhilePaused();
@@ -233,8 +238,13 @@
             document.getElementById('translationBox').textContent = "";
             
             // Відтворюємо аудіо речення англійською
-            if (enableSentenceAudio) {
-                await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
+            for (let i = 0; i < settings.repetitions; i++) {
+                if (enableSentenceAudio) {
+                    await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
+                }
+
+                await pauseForTranslation(settings.pauseBetween, 50);
+                await waitWhilePaused();
             }
             
             // Затримка перед перекладом
