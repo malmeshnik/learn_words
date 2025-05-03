@@ -428,6 +428,7 @@ def save_user_settings(request):
         delay_before_translation = float(user_settings.get('delayBeforeTranslation', 500)) / 1000
         hide_translation = user_settings.get('hide_translation', False)
         playback_speed = float(user_settings.get('playbackSpeed', 1))
+        lesson_repeat_count = user_settings.get('lessonRepeatCount', 1)
 
         print(repeat_count, pause_between, delay_before_translation, hide_translation)
 
@@ -439,7 +440,8 @@ def save_user_settings(request):
                 'pause_between': pause_between,
                 'delay_before_translation': delay_before_translation,
                 'hide_translation': hide_translation,
-                'playback_speed': playback_speed
+                'playback_speed': playback_speed,
+                'lesson_repeat_count': lesson_repeat_count
             }
         )
 

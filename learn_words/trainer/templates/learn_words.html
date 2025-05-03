@@ -11,6 +11,10 @@
     <div class="control-inputs" id="settingsBlock">
         {% csrf_token %}
         <div>
+            <label for="repeatCount">🔁 Кількість повторень уроку:</label><br>
+            <input type="number" id="lessonRepeatCount" value="{{ user_settings.lesson_repeat_count }}" min="1">
+        </div>
+        <div>
             <label for="repeatCount">🔁 Кількість повторень кожного слова:</label><br>
             <input type="number" id="repeatCount" value="{{ user_settings.repeat_count }}" min="1">
         </div>
@@ -387,6 +391,9 @@
         async function startLearning() {
             const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
             const enableWordAudio = document.getElementById('enableWordAudio').checked;
+            const settings = getDelaySettings();
+
+            console.log('lessonRepeatCount:', settings.lessonRepeatCount);
 
             currentIndex = 0;
             index = 0;
@@ -398,24 +405,30 @@
             document.getElementById('sentenceControls').style.display = 'block';
             document.getElementById('pauseBtnLabel').style.display = 'inline-flex';
 
-            if (enableWordAudio) {
-                document.getElementById("backSentenceButton").style.display = 'none';
-                document.getElementById('BackWordButton').style.display = 'inline-flex';
+            for (let i = 0; i < settings.lessonRepeatCount; i++) {
+                console.log(`=== Повторення №${i + 1} ===`);
+                currentIndex = 0;
+                index = 0;
 
-                await playingWords();
-            }
+                if (enableWordAudio) {
+                    document.getElementById("backSentenceButton").style.display = 'none';
+                    document.getElementById('BackWordButton').style.display = 'inline-flex';
 
-            const sentenceValue = parseInt(document.getElementById('sentenceValue').value) || 15;
+                    await playingWords();
+                }
 
-            if (sentenceValue > sentences.length) {
-                sentences = sentences.slice(0, sentenceValue);
-            }
-            
-            if (enableSentenceAudio) {
-                document.getElementById("BackWordButton").style.display = 'none';
-                document.getElementById("backSentenceButton").style.display = 'inline-flex';
+                const sentenceValue = parseInt(document.getElementById('sentenceValue').value) || 15;
+                
+                if (sentenceValue > sentences.length) {
+                    sentences = sentences.slice(0, sentenceValue);
+                }
+                
+                if (enableSentenceAudio) {
+                    document.getElementById("BackWordButton").style.display = 'none';
+                    document.getElementById("backSentenceButton").style.display = 'inline-flex';
 
-                await PlayingSentences();
+                    await PlayingSentences();
+                }
             }
             
             
@@ -431,6 +444,7 @@
                 pauseBetween: parseFloat(document.getElementById('pauseBetween').value) * 1000 || 1000,
                 delayBeforeTranslation: parseFloat(document.getElementById('delayBeforeTranslation').value) * 1000 || 1000,
                 playbackSpeed: parseFloat(document.getElementById('playbackSpeed').value) || 1,
+                lessonRepeatCount: parseInt(document.getElementById('lessonRepeatCount').value) || 1,
             };
         }
 
@@ -439,7 +453,8 @@
                 repetitions: parseInt(document.getElementById('repeatCount').value),
                 pauseBetween: parseFloat(document.getElementById('pauseBetween').value),
                 delayBeforeTranslation: parseFloat(document.getElementById('delayBeforeTranslation').value),
-                playbackSpeed: parseFloat(document.getElementById('playbackSpeed').value)
+                playbackSpeed: parseFloat(document.getElementById('playbackSpeed').value),
+                lessonRepeatCount: parseInt(document.getElementById('lessonRepeatCount').value)
             };
             sessionStorage.setItem('wordSettings', JSON.stringify(settings));
         }
