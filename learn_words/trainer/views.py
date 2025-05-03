@@ -452,27 +452,27 @@ def choose_category(request):
         {
             "id": 1,
             "name": "Займенник",
-            "words": N1.objects.all() 
+            "words": N1.objects.filter(user = request.user) 
         },
         {
             "id": 2,
             "name": "Глагол",
-            "words": N2.objects.all() 
+            "words": N2.objects.filter(user = request.user)
         },
         {
             "id": 3,
             "name": "Где",
-            "words": N3.objects.all() 
+            "words": N3.objects.filter(user = request.user)  
         },
         {
             "id": 4,
             "name": "Когда",
-            "words": N4.objects.all() 
+            "words": N4.objects.filter(user = request.user)  
         },
         {
             "id": 5,
             "name": "5",
-            "words": N5.objects.all() 
+            "words": N5.objects.filter(user = request.user)  
         }
     ]
 
