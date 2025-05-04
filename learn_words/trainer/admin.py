@@ -3,6 +3,7 @@ from .models import (Room,
                      Word, 
                      UserWord, 
                      SentenceTemplate,
+                     Chapter,
                      N1,
                      N2,
                      N3,
@@ -20,6 +21,13 @@ class RoomAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'user')
     search_fields = ('name', 'user__username')
     list_filter = ('user',)
+
+@admin.register(Chapter)
+class ChapterAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'user')
+    search_fields = ('name', 'user__username')
+    list_filter = ('user',)
+    list_select_related = ('user',)
 
 
 @admin.register(Word)

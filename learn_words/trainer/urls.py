@@ -4,10 +4,14 @@ from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
-    path('', views.room, name='index'),
+    path('', views.chapter, name='index'),
+    path('rooms/<int:chapter_id>', views.room, name='rooms'),
+    path('edit_chapter/', views.edit_chapter, name='edit_chapter'),
+    path('delete_chapter/', views.delete_chapter, name='delete_chapter'),
+    path('add_chapter/', views.add_chapter, name='add_chapter'),
     path('add_room/', views.add_room, name='add_room'),
-    path('room/<int:room_id>/', views.room_words, name='room_words'),
-    path('room/user/<int:room_id>', views.user_room_words, name='user_room_words'),
+    path('rooms/room/<int:room_id>/', views.room_words, name='room_words'),
+    path('rooms/room/user/<int:room_id>', views.user_room_words, name='user_room_words'),
     path('add_word/', views.add_word, name='add_word'),
     path('add-selected-words/', views.add_selected_words, name='add_selected_words'),
     path('add_selected_categories/', views.add_selected_categories, name='add_selected_categories'),

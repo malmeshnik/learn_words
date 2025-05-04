@@ -20,6 +20,7 @@ from .models import (Room,
                      Word,
                      UserSettings,
                      SentenceTemplate,
+                     Chapter,
                      N1,
                      N2,
                      N3,
@@ -32,12 +33,27 @@ from .models import (Room,
                      N10)
 
 @login_required(login_url='/login/')
-def room(request):
-    rooms = Room.objects.filter(user__isnull=True)
-    user_rooms = Room.objects.filter(user=request.user)
+def chapter(request):
+    chapters = Chapter.objects.filter(user__isnull=True)
+    user_chapters = Chapter.objects.filter(user=request.user)
+
+    return render(request,
+                  'chapters.html',
+                  context={
+                      'chapters': chapters,
+                      'user_chapters': user_chapters
+                  })
+
+@login_required(login_url='/login/')
+def room(request, chapter_id):
+    chapter = get_object_or_404(Chapter, id=chapter_id)
+    rooms = Room.objects.filter(chapter = chapter, user__isnull=True)
+    user_rooms = Room.objects.filter(chapter = chapter, user=request.user)
+    print(f'user_rooms: {user_rooms}')
     return render(request, 'rooms.html', context={
         'rooms': rooms,
-        'user_rooms': user_rooms
+        'user_rooms': user_rooms,
+        'chapter_id': chapter_id,
         })
 
 def login_view(request):
@@ -75,12 +91,14 @@ def logout_view(request):
 def add_room(request):
     if request.method == "POST":
         room_name = request.POST.get('name')
+        chapter_id = request.POST.get('chapter_id')
         exist_room = Room.objects.filter(name=room_name, user=request.user).exists()
+        chapter = get_object_or_404(Chapter, id=chapter_id)
         
         if exist_room:
             return JsonResponse({"success": False, "error": "Room is required"})
         else:
-            user_room = Room.objects.create(name=room_name, user=request.user)
+            user_room = Room.objects.create(name=room_name, chapter = chapter, user=request.user)
             return JsonResponse({"success": True, 'room_name': user_room.name, "room_id": user_room.id})
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
 
@@ -222,7 +240,86 @@ def edit_room(request):
             return JsonResponse({'success': False, 'error': str(e)})
     else:
         return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+
+@login_required
+def edit_chapter(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            chapter_id = data.get('chapter_id')
+            new_name = data.get('new_name')
+
+            if not chapter_id or not new_name:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            chapter = Chapter.objects.get(id=chapter_id, user=request.user)  # якщо є прив'язка до користувача
+            chapter.name = new_name
+            chapter.save()
+
+            return JsonResponse({
+                'success': True,
+                'chapter': {
+                    'id': chapter.id,
+                    'name': chapter.name,
+                }
+            })
+        
+        except Chapter.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
     
+def delete_chapter(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            chapter_id = data.get('chapter_id')
+
+            if not chapter_id:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            chapter = Chapter.objects.get(id=chapter_id, user=request.user)  # якщо є прив'язка до користувача
+            chapter.delete()
+
+            return JsonResponse({
+                'success': True,
+                'chapter_id': chapter_id,
+            })
+        
+        except Chapter.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+    
+def add_chapter(request):
+    if request.method == 'POST':
+        try:
+            chapter_name = request.POST.get('name')
+
+            print(chapter_name)
+
+            if not chapter_name:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            chapter = Chapter.objects.create(name=chapter_name, user=request.user)  # якщо є прив'язка до користувача
+
+            return JsonResponse({
+                'success': True,
+                'chapter': {
+                    'id': chapter.id,
+                    'name': chapter.name,
+                }
+            })
+        
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+
 def get_category_model(category_id):
     from django.apps import apps
     try:
