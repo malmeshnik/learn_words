@@ -203,11 +203,6 @@
                 e.preventDefault();
                 const checkboxes = document.querySelectorAll('input[name="words"]:checked');
 
-                if (checkboxes.length === 0) {
-                    document.getElementById("message").innerText = "Вибери хоча б одне слово!";
-                    return;
-                }
-
                 const categorizedWords = {};
                 checkboxes.forEach(cb => {
                     const category = cb.dataset.category;
