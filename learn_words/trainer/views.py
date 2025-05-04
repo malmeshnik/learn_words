@@ -20,6 +20,7 @@ from .models import (Room,
                      Word,
                      UserSettings,
                      SentenceTemplate,
+                     SentencesTranslate,
                      Chapter,
                      N1,
                      N2,
@@ -620,6 +621,11 @@ def generate_sentence_mp3(sentence, lang, sentence_id):
     return file_path
 
 def get_translate(text: str) -> str:
+    translate = SentencesTranslate.objects.filter(sentence_en=text).first()
+    
+    if translate:
+        return translate.sentence_ru
+    
     url = "https://google-translate-official.p.rapidapi.com/translate"
 
     payload = {
@@ -636,6 +642,8 @@ def get_translate(text: str) -> str:
     response = requests.post(url, data=payload, headers=headers)
 
     translate = response.json().get('translation_data').get('translation')
+
+    SentencesTranslate.objects.create(sentence_en=text, sentence_ru=translate)
 
     return translate
 

@@ -49,6 +49,13 @@ class SentenceTemplate(models.Model):
     def __str__(self):
         return self.template
 
+class SentencesTranslate(models.Model):
+    sentence_en = models.CharField(max_length=255)
+    sentence_ru = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.sentence_ru
+
 class N1(models.Model):
     word = models.CharField(max_length=255)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='N1', null=True, blank=True)

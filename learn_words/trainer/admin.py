@@ -3,6 +3,7 @@ from .models import (Room,
                      Word, 
                      UserWord, 
                      SentenceTemplate,
+                     SentencesTranslate,
                      Chapter,
                      N1,
                      N2,
@@ -52,6 +53,13 @@ class SentenceTemplateAdmin(admin.ModelAdmin):
     search_fields = ('template', 'translate')
     list_filter = ('created_at',)
     date_hierarchy = 'created_at'
+
+@admin.register(SentencesTranslate)
+class SentencesTranslateAdmin(admin.ModelAdmin):
+    list_display = ('id', 'sentence_en', 'sentence_ru')
+    search_fields = ('sentence_en', 'sentence_ru')
+    list_filter = ('sentence_en',)
+
 
 @admin.register(N1)
 class N1Admin(admin.ModelAdmin):
