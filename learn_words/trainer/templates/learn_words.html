@@ -51,6 +51,12 @@
                     🔊 Озвучувати речення
                 </label>
             </div>
+            <div>
+                <label>
+                    <input type="checkbox" id="playTranslationFirst">
+                    🔄 Спочатку відтворювати переклад
+                </label>
+            </div>
         </div>
     </div>
 
@@ -169,6 +175,7 @@
             
         async function playCurrentWord() {
             const enableWordAudio = document.getElementById('enableWordAudio').checked;
+            const playTranslationFirst = document.getElementById('playTranslationFirst').checked;
 
             const settings = getDelaySettings();
             const hideTranslation = document.getElementById('hideTranslation').checked;
@@ -183,14 +190,43 @@
             document.getElementById('wordBox').textContent = word.en;
             document.getElementById('translationBox').textContent = "";
 
-            for (let i = 0; i < settings.repetitions; i++) {
+            if (playTranslationFirst && !hideTranslation) {
+                // Сначала показываем и воспроизводим перевод
+                document.getElementById('wordBox').textContent = word.ru;
+                document.getElementById('translationBox').textContent = "";
+                
                 if (enableWordAudio) {
-                    await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
+                    await playAudio(`/media/audio/ru/${word.id}.mp3`);
                 }
-
+                
                 await pauseForTranslation(settings.pauseBetween, 50);
                 await waitWhilePaused();
-            }
+                
+                // Затем показываем и воспроизводим оригинал
+                document.getElementById('wordBox').textContent = word.en;
+                
+                for (let i = 0; i < settings.repetitions; i++) {
+                    if (enableWordAudio) {
+                        await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
+                    }
+                    
+                    await pauseForTranslation(settings.pauseBetween, 50);
+                    await waitWhilePaused();
+                }
+            } else {
+                // Стандартный порядок: сначала оригинал, затем перевод
+                document.getElementById('wordBox').textContent = word.en;
+                document.getElementById('translationBox').textContent = "";
+
+                for (let i = 0; i < settings.repetitions; i++) {
+                    if (enableWordAudio) {
+                        await playAudio(`/media/audio/en/${word.id}.mp3`, settings.playbackSpeed);
+                    }
+
+                    await pauseForTranslation(settings.pauseBetween, 50);
+                    await waitWhilePaused();
+                }
+
 
             await waitWhilePaused();
             await pauseForTranslation(settings.delayBeforeTranslation, 50);
@@ -201,7 +237,7 @@
                 }
                 document.getElementById('translationBox').textContent = word.ru;
             }
-
+        }
             waitWhilePaused();
 
             await sleep(settings.pauseBetween);
@@ -229,6 +265,7 @@
             const settings = getDelaySettings();
             const hideTranslation = document.getElementById('hideTranslation').checked;
             const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
+            const playTranslationFirst = document.getElementById('playTranslationFirst').checked;
             
             await waitWhilePaused();
             // Перевіряємо межі індексу
@@ -241,26 +278,56 @@
             document.getElementById('wordBox').textContent = sentence.template;
             document.getElementById('translationBox').textContent = "";
             
-            // Відтворюємо аудіо речення англійською
-            for (let i = 0; i < settings.repetitions; i++) {
-                if (enableSentenceAudio) {
-                    await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
-                }
-
-                await pauseForTranslation(settings.pauseBetween, 50);
-                await waitWhilePaused();
-            }
-            
-            // Затримка перед перекладом
-            await waitWhilePaused();
-            await pauseForTranslation(settings.delayBeforeTranslation, 50);
-            
-            // Показуємо та відтворюємо переклад
-            if (!hideTranslation) {
-                document.getElementById('translationBox').textContent = sentence.translate;
+            if (playTranslationFirst && !hideTranslation) {
+                // Сначала показываем и воспроизводим перевод
+                document.getElementById('wordBox').textContent = sentence.translate;
+                document.getElementById('translationBox').textContent = "";
                 
                 if (enableSentenceAudio) {
                     await playAudio(`/${sentence.path_to_ru}`);
+                }
+                
+                await pauseForTranslation(settings.pauseBetween, 50);
+                await waitWhilePaused();
+                
+                // Затем показываем и воспроизводим оригинал
+                document.getElementById('wordBox').textContent = sentence.template;
+                
+                for (let i = 0; i < settings.repetitions; i++) {
+                    if (enableSentenceAudio) {
+                        await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
+                    }
+                    
+                    await pauseForTranslation(settings.pauseBetween, 50);
+                    await waitWhilePaused();
+                }
+            } else {
+                // Стандартный порядок: сначала оригинал, затем перевод
+                // Показуємо англійське речення
+                document.getElementById('wordBox').textContent = sentence.template;
+                document.getElementById('translationBox').textContent = "";
+                
+                // Відтворюємо аудіо речення англійською
+                for (let i = 0; i < settings.repetitions; i++) {
+                    if (enableSentenceAudio) {
+                        await playAudio(`/${sentence.path_to_en}`, settings.playbackSpeed);
+                    }
+    
+                    await pauseForTranslation(settings.pauseBetween, 50);
+                    await waitWhilePaused();
+                }
+                
+                // Затримка перед перекладом
+                await waitWhilePaused();
+                await pauseForTranslation(settings.delayBeforeTranslation, 50);
+                
+                // Показуємо та відтворюємо переклад
+                if (!hideTranslation) {
+                    document.getElementById('translationBox').textContent = sentence.translate;
+                    
+                    if (enableSentenceAudio) {
+                        await playAudio(`/${sentence.path_to_ru}`);
+                    }
                 }
             }
             
