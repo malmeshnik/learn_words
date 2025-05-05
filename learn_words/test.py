@@ -12,17 +12,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 with sync_playwright() as pw:
             browser_args = [
                 "--disable-blink-features=AutomationControlled",
-                "--disable-features=IsolateOrigins",
-                "--disable-site-isolation-trials",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-accelerated-2d-canvas",
-                "--no-first-run",
-                "--no-zygote",
-                "--disable-gpu",
-                "--lang=uk-UA,uk;q=0.9,ru;q=0.8,en-US;q=0.7,en;q=0.6",
-                "--accept-lang=uk-UA,uk;q=0.9,ru;q=0.8,en-US;q=0.7,en;q=0.6"
+                # "--disable-features=IsolateOrigins",
+                # "--disable-site-isolation-trials",
+                # "--no-sandbox",
+                # "--disable-setuid-sandbox",
+                # "--disable-dev-shm-usage",
+                # "--disable-accelerated-2d-canvas",
+                # "--no-first-run",
+                # "--no-zygote",
+                # "--disable-gpu",
+                # "--lang=uk-UA,uk;q=0.9,ru;q=0.8,en-US;q=0.7,en;q=0.6",
+                # "--accept-lang=uk-UA,uk;q=0.9,ru;q=0.8,en-US;q=0.7,en;q=0.6"
             ]
 
             browser = pw.chromium.launch(
@@ -41,7 +41,7 @@ with sync_playwright() as pw:
                     "accept-encoding": "gzip, deflate, br, zstd",
                     "accept-language": "en-US,en;q=0.9,uk;q=0.8",
                     "cache-control": "max-age=0",
-                    "sec-ch-ua-platform": "Windows",
+                    # "sec-ch-ua-platform": "Windows",
                     
                     # "referer": "https://freelancehunt.com/profile/login",
                     # "upgrade-insecure-requests": "1",
