@@ -27,7 +27,7 @@ with sync_playwright() as pw:
 
             browser = pw.chromium.launch(
                 channel="chrome",
-                headless=False,  # Для отладки можно поставить False
+                headless=True,  # Для отладки можно поставить False
                 args=browser_args,
                 slow_mo=50,
             )
