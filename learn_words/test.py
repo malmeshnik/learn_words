@@ -44,11 +44,11 @@ with sync_playwright() as pw:
                     "sec-ch-ua-platform": "Windows",
                     
                     # "referer": "https://freelancehunt.com/profile/login",
-                    "upgrade-insecure-requests": "1",
-                    "sec-fetch-dest": "document",
-                    "sec-fetch-mode": "navigate",
-                    "sec-fetch-site": "same-origin",
-                    "sec-fetch-user": "?1",
+                    # "upgrade-insecure-requests": "1",
+                    # "sec-fetch-dest": "document",
+                    # "sec-fetch-mode": "navigate",
+                    # "sec-fetch-site": "same-origin",
+                    # "sec-fetch-user": "?1",
                     # "te": "trailers",
                 }
             )
