@@ -1,90 +1,142 @@
 {% extends "base.html" %}
 
-{% block title %}Список розділів{% endblock %}
+{% block title %}Список глав{% endblock %}
 
 {% block extra_styles %}
 <link rel="stylesheet" href="/static/css/rooms.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 {% endblock %}
 
 {% block content %}
 <div class="container">
+    <!-- Модальне вікно для редагування -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeEditModal()">&times;</span>
             <h2>Редагувати назву глави</h2>
             <form id="editWordForm" class="modal-form">
                 <input type="hidden" id="editRoomId">
-                <input type="text" id="editRoomName" placeholder="Нова назва глави">
-                <button type="button" onclick="saveEditedRoom()">Зберегти</button>
+                <div class="input-wrapper">
+                    <input type="text" id="editRoomName" placeholder="Нова назва глави" autocomplete="off">
+                </div>
+                <button type="button" onclick="saveEditedRoom()">
+                    <i class="fas fa-save"></i> Зберегти
+                </button>
             </form>
         </div>
     </div>
 
+    <!-- Спінер завантаження -->
+    <div id="loadingSpinner" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <h1>Список глав</h1>
 
-    <ul class="room-list" id="roomList">
-        {% for section in sections %}
-        <li class="room-item">
-            <span>{{ section.name }}</span>
-            <a href="{% url 'chapters' section.id %}">Переглянути</a>
-        </li>
-        {% endfor %}
-    </ul>
-
-    <h2>Ваші глави</h2>
-
-    <ul class="room-list" id="roomUserList">
-        {% if user_sections %}
-            {% for section in user_sections %}
-            <li class="room-item" data-room-id="{{ section.id }}">
+    <!-- Загальні глави -->
+    <div class="section-card">
+        <h2><i class="fas fa-book"></i> Загальні глави</h2>
+        <ul class="room-list" id="roomList">
+            {% for section in sections %}
+            <li class="room-item">
                 <span>{{ section.name }}</span>
                 <div class="room-actions">
-                    <button class="edit-room" room-id="{{ section.id }}" room-name="{{ section.name }}">Редагувати</button>
-                    <button class="delete-room" onclick="deleteRoom({{ section.id }})">Видалити</button>
-                    <a href="{% url 'chapters' section.id %}">Переглянути</a>
+                    <a href="{% url 'chapters' section.id %}">
+                        <i class="fas fa-eye"></i> Переглянути
+                    </a>
                 </div>
             </li>
             {% endfor %}
-        {% else %}
-            <p>Ви ще не маєте глав</p>
-        {% endif %}
-    </ul>
-    
-
-    <div class="add-room">
-        <a href="javascript:void(0);" onclick="showAddRoomForm()">Додати нову главу</a>
+        </ul>
     </div>
 
-    <div class="add-room-form" id="addRoomForm">
-        <input type="text" id="roomName" placeholder="Введіть ім'я розділу" required>
-        <button onclick="submitNewRoom()">Додати</button>
-        <p id="errorMessage" class="error"></p>
+    <!-- Ваші глави -->
+    <div class="section-card">
+        <h2><i class="fas fa-pencil-alt"></i> Ваші глави</h2>
+        
+        <div class="add-room">
+            <a href="javascript:void(0);" onclick="showAddRoomForm()">
+                <i class="fas fa-plus"></i> Додати нову главу
+            </a>
+        </div>
+        
+        <div class="add-room-form" id="addRoomForm">
+            <input type="text" id="roomName" placeholder="Введіть назву глави" required autocomplete="off">
+            <button onclick="submitNewRoom()">
+                <i class="fas fa-plus"></i> Додати
+            </button>
+            <p id="errorMessage" class="error"></p>
+        </div>
+
+        <ul class="room-list" id="roomUserList">
+            {% if user_sections %}
+                {% for section in user_sections %}
+                <li class="room-item" data-room-id="{{ section.id }}">
+                    <span>{{ section.name }}</span>
+                    <div class="room-actions">
+                        <button class="icon-btn edit-room" room-id="{{ section.id }}" room-name="{{ section.name }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="icon-btn delete-room" onclick="deleteRoom({{ section.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <a href="{% url 'chapters' section.id %}">
+                            <i class="fas fa-eye"></i> Переглянути
+                        </a>
+                    </div>
+                </li>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Ви ще не маєте глав</p>
+                </div>
+            {% endif %}
+        </ul>
     </div>
 </div>
 
 <script>
+    // Показує форму додавання нової глави
     function showAddRoomForm() {
         var form = document.getElementById('addRoomForm');
         form.style.display = 'block';
+        document.getElementById('roomName').focus();
     }
 
+    // Відкриває модальне вікно редагування
     function editRoom(roomId, roomName) {
         document.getElementById('editRoomId').value = roomId;
         document.getElementById('editRoomName').value = roomName;
 
         document.getElementById('editModal').style.display = 'block';
+        document.getElementById('editRoomName').focus();
     }
 
+    // Закриває модальне вікно редагування
     function closeEditModal() {
         document.getElementById('editModal').style.display = 'none';
     }
 
+    // Показує індикатор завантаження
+    function showLoading() {
+        document.getElementById('loadingSpinner').style.display = 'flex';
+    }
+
+    // Приховує індикатор завантаження
+    function hideLoading() {
+        document.getElementById('loadingSpinner').style.display = 'none';
+    }
+
+    // Зберігає зредаговану назву глави
     function saveEditedRoom() {
         var roomId = document.getElementById('editRoomId').value;
         var newRoomName = document.getElementById('editRoomName').value;
         var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         if (newRoomName.trim() !== '') {
+            showLoading();
+            
             fetch("{% url 'edit_section' %}", {
                 method: 'POST',
                 headers: {
@@ -95,29 +147,39 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
                     const roomItem = document.querySelector(`.room-item[data-room-id="${roomId}"]`);
                     if (roomItem) {
                         roomItem.querySelector('span').textContent = newRoomName;
+                        
+                        // Оновлюємо атрибут room-name кнопки редагування
+                        roomItem.querySelector('.edit-room').setAttribute('room-name', newRoomName);
                     }
                     closeEditModal();
+                    
+                    // Показуємо повідомлення про успіх
+                    showNotification('Назву глави успішно оновлено', 'success');
                 } else {
-                    alert('Не вдалося зберегти зміни: ' + data.error);
+                    showNotification('Не вдалося зберегти зміни: ' + data.error, 'error');
                 }
             })
             .catch(error => {
+                hideLoading();
                 console.error('Error:', error);
-                alert('Сталася помилка при збереженні змін.');
+                showNotification('Сталася помилка при збереженні змін', 'error');
             });
         } else {
-            alert('Будь ласка, введіть нову назву кімнати!');
+            showNotification('Будь ласка, введіть нову назву глави!', 'error');
         }
     }
 
+    // Видаляє главу
     function deleteRoom(roomId) {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-        if (confirm('Ви впевнені, що хочете видалити цю кімнату?')) {
+        if (confirm('Ви впевнені, що хочете видалити цю главу?')) {
+            showLoading();
             
             fetch("{% url 'delete_section' %}", {
                 method: 'POST',
@@ -129,60 +191,153 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
                     const roomItem = document.querySelector(`.room-item[data-room-id="${roomId}"]`);
-                    console.log
                     if (roomItem) {
-                        roomItem.remove();
+                        // Додаємо анімацію видалення
+                        roomItem.classList.add('fade-out');
+                        setTimeout(() => {
+                            roomItem.remove();
+                            
+                            // Перевіряємо, чи є ще глави у списку
+                            const roomList = document.getElementById('roomUserList');
+                            if (roomList.children.length === 0) {
+                                roomList.innerHTML = `
+                                <div class="empty-state">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Ви ще не маєте глав</p>
+                                </div>`;
+                            }
+                        }, 300);
                     }
+                    showNotification('Главу успішно видалено', 'success');
                 } else {
-                    alert('Не вдалося видалити кімнату: ' + data.error);
+                    showNotification('Не вдалося видалити главу: ' + data.error, 'error');
                 }
             })
             .catch(error => {
+                hideLoading();
                 console.error('Error:', error);
-                alert('Сталася помилка при видаленні кімнати.');
+                showNotification('Сталася помилка при видаленні глави', 'error');
             });
         }
     }
 
+    // Додає нову главу
     function submitNewRoom() {
         var roomName = document.getElementById('roomName').value;
         var errorMessage = document.getElementById('errorMessage');
 
         if (roomName.trim() !== '') {
+            showLoading();
+            
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/add_section/', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
             xhr.onload = function () {
+                hideLoading();
                 var response = JSON.parse(xhr.responseText);
                 if (response.success) {
                     var roomList = document.getElementById('roomUserList');
+                    
+                    // Видаляємо повідомлення про пусті глави, якщо воно є
+                    const emptyState = roomList.querySelector('.empty-state');
+                    if (emptyState) {
+                        emptyState.remove();
+                    }
+                    
                     var newRoom = document.createElement('li');
                     newRoom.dataset.roomId = response.section.id;
                     newRoom.classList.add('room-item');
-                    newRoom.innerHTML += '<span>' + response.section.name + '</span>';
-                    newRoom.appendChild(document.createElement('div')).classList.add('room-actions');
-                    var roomActions = newRoom.querySelector('.room-actions');
-                    roomActions.innerHTML += '<button class="edit-room" room-id="' + response.section.id + '" room-name="' + response.section.name + '">Редагувати</button>';
-                    roomActions.innerHTML += '<button class="delete-room" onclick="deleteRoom(' + response.section.id + ')">Видалити</button>';
-                    roomActions.innerHTML += '<a href="chapters/' + response.section.id + '">Переглянути</a>';
-
-                    newRoom.appendChild(roomActions);
+                    newRoom.classList.add('fade-in'); // Додаємо анімацію появи
+                    
+                    newRoom.innerHTML = `
+                        <span>${response.section.name}</span>
+                        <div class="room-actions">
+                            <button class="edit-room" room-id="${response.section.id}" room-name="${response.section.name}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-room" onclick="deleteRoom(${response.section.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <a href="chapters/${response.section.id}">
+                                <i class="fas fa-eye"></i> Переглянути
+                            </a>
+                        </div>
+                    `;
+                    
                     roomList.appendChild(newRoom);
                     document.getElementById('roomName').value = '';
                     errorMessage.textContent = '';
+                    
+                    // Додаємо обробник подій для нової кнопки редагування
+                    newRoom.querySelector('.edit-room').addEventListener('click', function() {
+                        const roomId = this.getAttribute('room-id');
+                        const roomName = this.getAttribute('room-name');
+                        editRoom(roomId, roomName);
+                    });
+                    
+                    showNotification('Нову главу успішно додано', 'success');
                 } else {
                     errorMessage.textContent = response.error;
+                    showNotification('Помилка: ' + response.error, 'error');
                 }
             };
             xhr.send('name=' + encodeURIComponent(roomName));
         } else {
-            errorMessage.textContent = 'Будь ласка, введіть назву кімнати!';
+            errorMessage.textContent = 'Будь ласка, введіть назву глави!';
         }
     }
+    
+    // Показує повідомлення користувачу
+    function showNotification(message, type = 'info') {
+        // Перевіримо, чи вже існує контейнер для повідомлень
+        let notificationContainer = document.getElementById('notification-container');
+        
+        if (!notificationContainer) {
+            notificationContainer = document.createElement('div');
+            notificationContainer.id = 'notification-container';
+            document.body.appendChild(notificationContainer);
+        }
+        
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="close-notification">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        notificationContainer.appendChild(notification);
+        
+        // Додаємо обробник для закриття повідомлення
+        notification.querySelector('.close-notification').addEventListener('click', () => {
+            notification.classList.add('notification-hide');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        });
+        
+        // Автоматично закриваємо повідомлення через 5 секунд
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.add('notification-hide');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }
+        }, 5000);
+    }
 
+    // Додаємо обробники подій для кнопок редагування
     document.querySelectorAll('.edit-room').forEach(button => {
         button.addEventListener('click', function() {
             const roomId = this.getAttribute('room-id');
@@ -191,11 +346,35 @@
         });
     });
 
+    // Закриваємо модальне вікно при кліку поза ним
     window.onclick = function(event) {
         const modal = document.getElementById('editModal');
         if (event.target == modal) {
             modal.style.display = "none";
         }
     }
+    
+    // Обробляємо натискання клавіші Escape для закриття модального вікна
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeEditModal();
+        }
+    });
+    
+    // Відправка форми редагування по натисканню Enter
+    document.getElementById('editRoomName').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEditedRoom();
+        }
+    });
+    
+    // Відправка форми додавання по натисканню Enter
+    document.getElementById('roomName').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitNewRoom();
+        }
+    });
 </script>
 {% endblock %}
