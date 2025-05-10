@@ -364,9 +364,19 @@ h3 {
     margin-right: var(--spacing-xs);
 }
 
+.primary-btn,
+.secondary-btn {
+    padding: 14px 24px;
+    font-size: var(--font-size-md); /* 16px */
+    border-radius: var(--border-radius-lg); /* 15px */
+    min-height: 48px;
+}
+
 .primary-btn {
     background-color: var(--accent-primary);
     color: white;
+    font-weight: 600;
+    transition: all 0.2s ease;
 }
 
 .primary-btn:hover {
@@ -375,12 +385,13 @@ h3 {
 }
 
 .secondary-btn {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
+    font-weight: 500;
 }
 
 .secondary-btn:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.12);
     transform: translateY(-1px);
 }
 
