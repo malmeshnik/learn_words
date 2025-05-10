@@ -11,48 +11,48 @@
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeEditModal()">&times;</span>
-            <h2>Редагувати назву розділу</h2>
+            <h2>Редагувати назву глави</h2>
             <form id="editWordForm" class="modal-form">
                 <input type="hidden" id="editRoomId">
-                <input type="text" id="editRoomName" placeholder="Нова назва розділу">
+                <input type="text" id="editRoomName" placeholder="Нова назва глави">
                 <button type="button" onclick="saveEditedRoom()">Зберегти</button>
             </form>
         </div>
     </div>
 
-    <h1>Список розділів</h1>
+    <h1>Список глав</h1>
 
     <ul class="room-list" id="roomList">
-        {% for chapter in chapters %}
+        {% for section in sections %}
         <li class="room-item">
-            <span>{{ chapter.name }}</span>
-            <a href="{% url 'rooms' chapter.id %}">Переглянути</a>
+            <span>{{ section.name }}</span>
+            <a href="{% url 'chapters' section.id %}">Переглянути</a>
         </li>
         {% endfor %}
     </ul>
 
-    <h2>Ваші розділи</h2>
+    <h2>Ваші глави</h2>
 
     <ul class="room-list" id="roomUserList">
-        {% if user_chapters %}
-            {% for chapter in user_chapters %}
-            <li class="room-item" data-room-id="{{ chapter.id }}">
-                <span>{{ chapter.name }}</span>
+        {% if user_sections %}
+            {% for section in user_sections %}
+            <li class="room-item" data-room-id="{{ section.id }}">
+                <span>{{ section.name }}</span>
                 <div class="room-actions">
-                    <button class="edit-room" room-id="{{ chapter.id }}" room-name="{{ chapter.name }}">Редагувати</button>
-                    <button class="delete-room" onclick="deleteRoom({{ chapter.id }})">Видалити</button>
-                    <a href="{% url 'rooms' chapter.id %}">Переглянути</a>
+                    <button class="edit-room" room-id="{{ section.id }}" room-name="{{ section.name }}">Редагувати</button>
+                    <button class="delete-room" onclick="deleteRoom({{ section.id }})">Видалити</button>
+                    <a href="{% url 'chapters' section.id %}">Переглянути</a>
                 </div>
             </li>
             {% endfor %}
         {% else %}
-            <p>Ви ще не маєте розділів</p>
+            <p>Ви ще не маєте глав</p>
         {% endif %}
     </ul>
     
 
     <div class="add-room">
-        <a href="javascript:void(0);" onclick="showAddRoomForm()">Додати новий розділ</a>
+        <a href="javascript:void(0);" onclick="showAddRoomForm()">Додати нову главу</a>
     </div>
 
     <div class="add-room-form" id="addRoomForm">
@@ -85,13 +85,13 @@
         var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         if (newRoomName.trim() !== '') {
-            fetch("{% url 'edit_chapter' %}", {
+            fetch("{% url 'edit_section' %}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ chapter_id: roomId, new_name: newRoomName })
+                body: JSON.stringify({ section_id: roomId, new_name: newRoomName })
             })
             .then(response => response.json())
             .then(data => {
@@ -119,13 +119,13 @@
 
         if (confirm('Ви впевнені, що хочете видалити цю кімнату?')) {
             
-            fetch("{% url 'delete_chapter' %}", {
+            fetch("{% url 'delete_section' %}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ chapter_id: roomId })
+                body: JSON.stringify({ section_id: roomId })
             })
             .then(response => response.json())
             .then(data => {
@@ -152,7 +152,7 @@
 
         if (roomName.trim() !== '') {
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/add_chapter/', true);
+            xhr.open('POST', '/add_section/', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
             xhr.onload = function () {
@@ -160,14 +160,14 @@
                 if (response.success) {
                     var roomList = document.getElementById('roomUserList');
                     var newRoom = document.createElement('li');
-                    newRoom.dataset.roomId = response.chapter.id;
+                    newRoom.dataset.roomId = response.section.id;
                     newRoom.classList.add('room-item');
-                    newRoom.innerHTML += '<span>' + response.chapter.name + '</span>';
+                    newRoom.innerHTML += '<span>' + response.section.name + '</span>';
                     newRoom.appendChild(document.createElement('div')).classList.add('room-actions');
                     var roomActions = newRoom.querySelector('.room-actions');
-                    roomActions.innerHTML += '<button class="edit-room" room-id="' + response.chapter.id + '" room-name="' + response.room_name + '">Редагувати</button>';
-                    roomActions.innerHTML += '<button class="delete-room" onclick="deleteRoom(' + response.chapter.id + ')">Видалити</button>';
-                    roomActions.innerHTML += '<a href="/rooms/' + response.chapter.id + '">Переглянути</a>';
+                    roomActions.innerHTML += '<button class="edit-room" room-id="' + response.section.id + '" room-name="' + response.section.name + '">Редагувати</button>';
+                    roomActions.innerHTML += '<button class="delete-room" onclick="deleteRoom(' + response.section.id + ')">Видалити</button>';
+                    roomActions.innerHTML += '<a href="chapters/' + response.section.id + '">Переглянути</a>';
 
                     newRoom.appendChild(roomActions);
                     roomList.appendChild(newRoom);
@@ -177,8 +177,7 @@
                     errorMessage.textContent = response.error;
                 }
             };
-            xhr.send('name=' + encodeURIComponent(roomName) +
-                     '&section_id=' + encodeURIComponent('{{ section_id }}'));
+            xhr.send('name=' + encodeURIComponent(roomName));
         } else {
             errorMessage.textContent = 'Будь ласка, введіть назву кімнати!';
         }

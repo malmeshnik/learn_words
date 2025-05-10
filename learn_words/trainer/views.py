@@ -21,6 +21,7 @@ from .models import (Room,
                      UserSettings,
                      SentenceTemplate,
                      SentencesTranslate,
+                     Section,
                      Chapter,
                      N1,
                      N2,
@@ -34,15 +35,29 @@ from .models import (Room,
                      N10)
 
 @login_required(login_url='/login/')
-def chapter(request):
-    chapters = Chapter.objects.filter(user__isnull=True)
-    user_chapters = Chapter.objects.filter(user=request.user)
+def chapter(request, section_id):
+    section = get_object_or_404(Section, id=section_id)
+    chapters = Chapter.objects.filter(section=section, user__isnull=True)
+    user_chapters = Chapter.objects.filter(section=section, user=request.user)
 
     return render(request,
                   'chapters.html',
                   context={
                       'chapters': chapters,
-                      'user_chapters': user_chapters
+                      'user_chapters': user_chapters,
+                      'section_id': section.id
+                  })
+
+@login_required(login_url='/login/')
+def section(request):
+    sections = Section.objects.filter(user__isnull=True)
+    user_sections = Section.objects.filter(user=request.user)
+
+    return render(request,
+                  'sections.html',
+                  context={
+                      'sections': sections,
+                      'user_sections': user_sections
                   })
 
 @login_required(login_url='/login/')
@@ -117,6 +132,20 @@ def room_words(request, room_id):
                       'room': room, 
                       'words': words,
                       'user_words': user_words})
+
+@login_required
+def user_chapter_words(request, chapter_id):
+    chapter = get_object_or_404(Chapter, id=chapter_id)
+    admin_chapter = Chapter.objects.filter(room=chapter_id, user__isnull = True)
+    user_chapter = Chapter.objects.filter(room=chapter_id, user=request.user)
+
+    return render(request,
+                  'room_words.html',
+                  {
+                      'room': chapter,
+                      'admin_chapter': admin_chapter,
+                      'user_chapter': user_chapter
+                  })
 
 @login_required
 def user_room_words(request, room_id):
@@ -295,18 +324,100 @@ def delete_chapter(request):
             return JsonResponse({'success': False, 'error': str(e)})
     else:
         return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+
+def add_section(request):
+    if request.method == 'POST':
+        try:
+            section_name = request.POST.get('name')
+
+            if not section_name:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            section = Section.objects.create(name=section_name, user=request.user)  # якщо є прив'язка до користувача
+
+            return JsonResponse({
+                'success': True,
+                'section': {
+                    'id': section.id,
+                    'name': section.name,
+                }
+            })
+        
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+
+@login_required
+def edit_section(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            section_id = data.get('section_id')
+            new_name = data.get('new_name')
+
+            if not section_id or not new_name:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            section = Section.objects.get(id=section_id, user=request.user)  # якщо є прив'язка до користувача
+            section.name = new_name
+            section.save()
+
+            return JsonResponse({
+                'success': True,
+                'section': {
+                    'id': section.id,
+                    'name': section.name,
+                }
+            })
+        
+        except Section.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
     
+def delete_section(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            section_id = data.get('section_id')
+
+            if not section_id:
+                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+
+            section = Section.objects.get(id=section_id, user=request.user)  # якщо є прив'язка до користувача
+            section.delete()
+
+            return JsonResponse({
+                'success': True,
+                'section_id': section_id,
+            })
+        
+        except Section.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    else:
+        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+
+
 def add_chapter(request):
     if request.method == 'POST':
         try:
             chapter_name = request.POST.get('name')
+            section_id = request.POST.get('section_id')
+            section = get_object_or_404(Section, id=section_id)
 
             print(chapter_name)
 
             if not chapter_name:
                 return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
 
-            chapter = Chapter.objects.create(name=chapter_name, user=request.user)  # якщо є прив'язка до користувача
+            chapter = Chapter.objects.create(name=chapter_name, 
+                                             user=request.user,
+                                             section=section)  # якщо є прив'язка до користувача
 
             return JsonResponse({
                 'success': True,

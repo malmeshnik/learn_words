@@ -4,7 +4,11 @@ from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
-    path('', views.chapter, name='index'),
+    path('', views.section, name='index'),
+    path('edit_section/', views.edit_section, name='edit_section'),
+    path('delete_section/', views.delete_section, name='delete_section'),
+    path('add_section/', views.add_section, name='add_section'),
+    path('chapters/<int:section_id>', views.chapter, name='chapters'),
     path('rooms/<int:chapter_id>', views.room, name='rooms'),
     path('edit_chapter/', views.edit_chapter, name='edit_chapter'),
     path('delete_chapter/', views.delete_chapter, name='delete_chapter'),

@@ -5,6 +5,7 @@ from .models import (Room,
                      SentenceTemplate,
                      SentencesTranslate,
                      Chapter,
+                     Section,
                      N1,
                      N2,
                      N3,
@@ -59,6 +60,13 @@ class SentencesTranslateAdmin(admin.ModelAdmin):
     list_display = ('id', 'sentence_en', 'sentence_ru')
     search_fields = ('sentence_en', 'sentence_ru')
     list_filter = ('sentence_en',)
+
+@admin.register(Section)
+class SectionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'user')
+    search_fields = ('name', 'user__username')
+    list_filter = ('user',)
+    list_select_related = ('user',)
 
 
 @admin.register(N1)
