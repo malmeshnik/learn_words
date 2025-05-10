@@ -161,8 +161,6 @@ def user_room_words(request, room_id):
                       'user_words': user_words
                   })
 
-    
-
 @login_required
 @csrf_exempt 
 def add_word(request):

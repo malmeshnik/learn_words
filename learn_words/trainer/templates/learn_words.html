@@ -75,6 +75,7 @@
     <div class="sentence-controls" id="sentenceControls">
         <button id="backSentenceButton">⏪ Повторити речення</button>
         <button id="BackWordButton">⏪ Повторити слово</button>
+        <button id="showTranslation">Показати перевод</button>
         <button id="pauseBtnLabel" onclick="togglePause()"><span>⏸️ Пауза</span></button>
     </div>
 
@@ -431,6 +432,10 @@
             }
 
             isContinuingPlayback = false;
+
+            if (index == words.length) {
+                PlayingSentences();
+            }
         }
  
         async function saveUserSettings() {
@@ -471,6 +476,7 @@
             document.getElementById('settingsBlock').style.display = 'none';
             document.getElementById('sentenceControls').style.display = 'block';
             document.getElementById('pauseBtnLabel').style.display = 'inline-flex';
+            document.getElementById('showTranslation').style.display = 'inline-flex';
 
             for (let i = 0; i < settings.lessonRepeatCount; i++) {
                 console.log(`=== Повторення №${i + 1} ===`);
@@ -544,6 +550,41 @@
         }
 
         document.getElementById("startBtn").addEventListener("click", startLearning);
+        document.getElementById("showTranslation").addEventListener("click", function() {
+            // Остановить текущее аудио
+            stopCurrentAudio();
+            
+            // Остановить текущую задержку перед переводом
+            stopCurrentTranslation = true;
+            
+            // Проверяем, что сейчас отображается - предложение или слово
+            if (document.getElementById('enableSentenceAudio').checked && index < words.length) {
+                // Отображаем перевод предложения
+                const word = words[index - 1 >= 0 ? index - 1 : 0];
+                document.getElementById('translationBox').textContent = word.ru;
+                
+                // Воспроизводим русский аудио перевод, если аудио для слов включено
+                playAudio(`/media/audio/ru/${word.id}.mp3`);
+
+                playingWords();
+            } 
+            else if (document.getElementById('enableWordAudio').checked && currentIndex < sentences.length) {
+                // Отображаем перевод слов
+
+                const sentence = sentences[currentIndex - 1 >= 0 ? currentIndex - 1 : 0];
+                document.getElementById('translationBox').textContent = sentence.translate;
+                
+                // Воспроизводим русский аудио перевод, если аудио для предложений включено
+                playAudio(`/${sentence.path_to_ru}`);
+
+                PlayingSentences();
+            }
+        
+            
+            // НЕ вызываем playingWords() сразу после показа перевода, 
+            // так как это может прервать текущий поток воспроизведения
+        });
+        
         
     </script>
 </body>
