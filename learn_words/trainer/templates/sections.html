@@ -42,7 +42,7 @@
                 <span>{{ section.name }}</span>
                 <div class="room-actions">
                     <a href="{% url 'chapters' section.id %}">
-                        <i class="fas fa-eye"></i>
+                        <i class="fa-sharp fa-regular fa-folder-open"></i>
                     </a>
                 </div>
             </li>
@@ -53,20 +53,6 @@
 
     <!-- Ваші глави -->
     <div class="section-card">
-        
-        <div class="add-room">
-            <a href="javascript:void(0);" onclick="showAddRoomForm()">
-                <i class="fas fa-plus"></i> Додати нову главу
-            </a>
-        </div>
-        
-        <div class="add-room-form" id="addRoomForm">
-            <input type="text" id="roomName" placeholder="Введіть назву глави" required autocomplete="off">
-            <button onclick="submitNewRoom()">
-                <i class="fas fa-plus"></i> Додати
-            </button>
-            <p id="errorMessage" class="error"></p>
-        </div>
 
         <ul class="room-list" id="roomUserList">
             {% if user_sections %}
@@ -81,7 +67,7 @@
                             <i class="fas fa-trash"></i>
                         </button>
                         <a href="{% url 'chapters' section.id %}">
-                            <i class="fas fa-eye"></i>
+                            <i class="fa-sharp fa-regular fa-folder-open"></i>
                         </a>
                     </div>
                 </li>
@@ -93,6 +79,20 @@
                 </div>
             {% endif %}
         </ul>
+    </div>
+
+    <div class="add-room">
+        <a href="javascript:void(0);" onclick="showAddRoomForm()">
+            <i class="fas fa-plus"></i> Додати нову главу
+        </a>
+    </div>
+    
+    <div class="add-room-form" id="addRoomForm">
+        <input type="text" id="roomName" placeholder="Введіть назву глави" required autocomplete="off">
+        <button onclick="submitNewRoom()">
+            <i class="fas fa-plus"></i> Додати
+        </button>
+        <p id="errorMessage" class="error"></p>
     </div>
 </div>
 
