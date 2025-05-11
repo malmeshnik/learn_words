@@ -247,13 +247,14 @@ h3 {
 
 .checkmark {
     position: relative;
-    display: inline-block;
+    display: inherit;
     height: 22px;
     width: 22px;
     background-color: #2d2d2d;
     border: 2px solid var(--text-muted);
     border-radius: 4px;
     transition: all 0.2s ease;
+    gap: var(--spacing-sm);
 }
 
 .word-checkbox:checked ~ .checkmark {
@@ -276,6 +277,7 @@ h3 {
     border: solid white;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
+    gap: var(--spacing-sm);
 }
 
 .word-checkbox:checked ~ .checkmark:after {
@@ -654,14 +656,13 @@ h3 {
     }
     
     .word-item {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
     }
     
     .word-actions {
-        width: 100%;
+        width: 15%;
         justify-content: flex-end;
-        margin-top: var(--spacing-sm);
+        /* margin-top: var(--spacing-sm); */
     }
     
     .page-header h1 {
