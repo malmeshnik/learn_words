@@ -182,8 +182,8 @@ h2 {
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     justify-content: center;
     text-decoration: none;
 }
@@ -211,7 +211,7 @@ h2 {
 /* Форма додавання розділу */
 .add-room {
     margin: var(--spacing-md) 0 var(--spacing-lg);
-    text-align: right;
+    text-align: center;
 }
 
 .add-room a {
@@ -536,6 +536,8 @@ h2 {
     .room-item {
         flex-direction: row;
         align-items: flex-start;
+        padding: var(--spacing-xs);
+        /* margin-bottom: var(--spacing-xs); */
     }
     
     .room-actions {
@@ -578,7 +580,7 @@ h2 {
     .room-actions button,
     .room-actions a {
         gap: var(--spacing-xs);
-        width: 100%;
+        width: 15%;
     }
 }
 

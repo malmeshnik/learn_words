@@ -41,29 +41,11 @@
                     <a href="{% url 'room_words' room.id %}">
                         <i class="fa-sharp fa-regular fa-folder-open"></i>
                     </a>
-                </div
+                </div>
             </li>
             {% endfor %}
         </ul>
     {% endif %}
-    </div>
-
-
-    <div class="section-card">
-        <div class="add-room">
-            <a href="javascript:void(0);" onclick="showAddRoomForm()">
-                <i class="fas fa-plus"></i> Додати нову кімнату
-            </a>
-        </div>
-
-        <div class="add-room-form" id="addRoomForm">
-            <input type="text" id="roomName" placeholder="Введіть назву кімнати" required autocomplete="off">
-            <button onclick="submitNewRoom()">
-                <i class="fas fa-plus"></i> Додати
-            </button>
-            <p id="errorMessage" class="error"></p>
-        </div>
-
         <ul class="room-list" id="roomUserList">
             {% if user_rooms %}
                 {% for room in user_rooms %}
@@ -90,6 +72,21 @@
             {% endif %}
         </ul>
     </div>
+
+    <div class="add-room">
+        <a href="javascript:void(0);" onclick="showAddRoomForm()">
+            <i class="fas fa-plus"></i> Додати нову кімнату
+        </a>
+    </div>
+
+    <div class="add-room-form" id="addRoomForm">
+        <input type="text" id="roomName" placeholder="Введіть назву кімнати" required autocomplete="off">
+        <button onclick="submitNewRoom()">
+            <i class="fas fa-plus"></i> Додати
+        </button>
+        <p id="errorMessage" class="error"></p>
+    </div>
+    
 </div>
 
 <script>

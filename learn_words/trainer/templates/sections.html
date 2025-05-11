@@ -48,12 +48,7 @@
             </li>
             {% endfor %}
         </ul>
-    </div>
     {% endif %}
-
-    <!-- Ваші глави -->
-    <div class="section-card">
-
         <ul class="room-list" id="roomUserList">
             {% if user_sections %}
                 {% for section in user_sections %}
@@ -80,6 +75,7 @@
             {% endif %}
         </ul>
     </div>
+</div>
 
     <div class="add-room">
         <a href="javascript:void(0);" onclick="showAddRoomForm()">
