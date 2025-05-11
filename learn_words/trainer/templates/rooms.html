@@ -4,6 +4,7 @@
 
 {% block extra_styles %}
 <link rel="stylesheet" href="/static/css/rooms.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 {% endblock %}
 
 {% block content %}
@@ -14,51 +15,80 @@
             <h2>Редагувати назву кімнати</h2>
             <form id="editWordForm" class="modal-form">
                 <input type="hidden" id="editRoomId">
-                <input type="text" id="editRoomName" placeholder="Нова назва кімнати">
-                <button type="button" onclick="saveEditedRoom()">Зберегти</button>
+                <div class="input-wrapper">
+                    <input type="text" id="editRoomName" placeholder="Нова назва кімнати" autocomplete="off">
+                </div>
+                <button type="button" onclick="saveEditedRoom()">
+                    <i class="fas fa-save"></i>Зберегти
+                </button>
             </form>
         </div>
     </div>
 
+    <div id="loadingSpinner" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <h1>Список кімнат</h1>
 
-    <ul class="room-list" id="roomList">
-        {% for room in rooms %}
-        <li class="room-item">
-            <span>{{ room.name }}</span>
-            <a href="{% url 'room_words' room.id %}">Переглянути</a>
-        </li>
-        {% endfor %}
-    </ul>
+    {% if rooms %}
+    <div class="section-card"
+        <ul class="room-list" id="roomList">
+            {% for room in rooms %}
+            <li class="room-item">
+                <span>{{ room.name }}</span>
+                <div class="room-actions">
+                    <a href="{% url 'room_words' room.id %}">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </div
+            </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    </div>
 
-    <h2>Ваші кімнати</h2>
 
-    
+    <div class="section-card">
+        <div class="add-room">
+            <a href="javascript:void(0);" onclick="showAddRoomForm()">
+                <i class="fas fa-plus"></i> Додати нову кімнату
+            </a>
+        </div>
+
+        <div class="add-room-form" id="addRoomForm">
+            <input type="text" id="roomName" placeholder="Введіть назву кімнати" required autocomplete="off">
+            <button onclick="submitNewRoom()">
+                <i class="fas fa-plus"></i> Додати
+            </button>
+            <p id="errorMessage" class="error"></p>
+        </div>
+
         <ul class="room-list" id="roomUserList">
             {% if user_rooms %}
                 {% for room in user_rooms %}
                 <li class="room-item" data-room-id="{{ room.id }}">
                     <span>{{ room.name }}</span>
                     <div class="room-actions">
-                        <button class="edit-room" room-id="{{ room.id }}" room-name="{{ room.name }}">Редагувати</button>
-                        <button class="delete-room" onclick="deleteRoom({{ room.id }})">Видалити</button>
-                        <a href="{% url 'user_room_words' room.id %}">Переглянути</a>
+                        <button class="edit-room" room-id="{{ room.id }}" room-name="{{ room.name }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-room" onclick="deleteRoom({{ room.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <a href="{% url 'user_room_words' room.id %}">
+                            <i class="fas fa-eye"></i>
+                        </a>
                     </div>
                 </li>
                 {% endfor %}
             {% else %}
-                <p>Ви ще не маєте кімнат</p>
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Ви ще не маєте глав</p>
+                </div>
             {% endif %}
         </ul>
-
-    <div class="add-room">
-        <a href="javascript:void(0);" onclick="showAddRoomForm()">Додати нову кімнату</a>
-    </div>
-
-    <div class="add-room-form" id="addRoomForm">
-        <input type="text" id="roomName" placeholder="Введіть ім'я кімнати" required>
-        <button onclick="submitNewRoom()">Додати</button>
-        <p id="errorMessage" class="error"></p>
     </div>
 </div>
 
@@ -66,6 +96,7 @@
     function showAddRoomForm() {
         var form = document.getElementById('addRoomForm');
         form.style.display = 'block';
+        document.getElementById('roomName').focus();
     }
 
     function editRoom(roomId, roomName) {
@@ -73,10 +104,20 @@
         document.getElementById('editRoomName').value = roomName;
 
         document.getElementById('editModal').style.display = 'block';
+        document.getElementById('editRoomName').focus();
     }
 
     function closeEditModal() {
         document.getElementById('editModal').style.display = 'none';
+    }
+    
+    function showLoading() {
+        document.getElementById('loadingSpinner').style.display = 'flex';
+    }
+
+    // Приховує індикатор завантаження
+    function hideLoading() {
+        document.getElementById('loadingSpinner').style.display = 'none';
     }
 
     function saveEditedRoom() {
@@ -118,6 +159,7 @@
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         if (confirm('Ви впевнені, що хочете видалити цю кімнату?')) {
+            showLoading();
             
             fetch("{% url 'delete_room' %}", {
                 method: 'POST',
@@ -129,19 +171,35 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
                     const roomItem = document.querySelector(`.room-item[data-room-id="${roomId}"]`);
-                    console.log
                     if (roomItem) {
-                        roomItem.remove();
+                        // Додаємо анімацію видалення
+                        roomItem.classList.add('fade-out');
+                        setTimeout(() => {
+                            roomItem.remove();
+                            
+                            // Перевіряємо, чи є ще глави у списку
+                            const roomList = document.getElementById('roomUserList');
+                            if (roomList.children.length === 0) {
+                                roomList.innerHTML = `
+                                <div class="empty-state">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Ви ще не маєте кімнат</p>
+                                </div>`;
+                            }
+                        }, 300);
                     }
+                    showNotification('Главу успішно видалено', 'success');
                 } else {
-                    alert('Не вдалося видалити кімнату: ' + data.error);
+                    showNotification('Не вдалося видалити кімнату: ' + data.error, 'error');
                 }
             })
             .catch(error => {
+                hideLoading();
                 console.error('Error:', error);
-                alert('Сталася помилка при видаленні кімнати.');
+                showNotification('Сталася помилка при видаленні кімнати', 'error');
             });
         }
     }
@@ -151,31 +209,63 @@
         var errorMessage = document.getElementById('errorMessage');
 
         if (roomName.trim() !== '') {
+            showLoading();
+
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/add_room/', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
             xhr.onload = function () {
+                hideLoading();
+                
                 var response = JSON.parse(xhr.responseText);
                 if (response.success) {
                     var roomList = document.getElementById('roomUserList');
 
-                    var newRoom = document.createElement('li');
-                    newRoom.classList.add('room-item');
-                    newRoom.dataset.roomId = response.room_id;
-                    newRoom.innerHTML += '<span>' + response.room_name + '</span>';
-                    newRoom.appendChild(document.createElement('div')).classList.add('room-actions');
-                    var roomActions = newRoom.querySelector('.room-actions');
-                    roomActions.innerHTML += '<button class="edit-room" room-id="' + response.room_id + '" room-name="' + response.room_name + '">Редагувати</button>';
-                    roomActions.innerHTML += '<button class="delete-room" onclick="deleteRoom(' + response.room_id + ')">Видалити</button>';
-                    roomActions.innerHTML += '<a href="room/user/' + response.room_id + '">Переглянути</a>';
+                    const emptyState = roomList.querySelector('.empty-state');
+                    if (emptyState) {
+                        emptyState.remove();
+                    }
 
-                    newRoom.appendChild(roomActions);
+                    var newRoom = document.createElement('li');
+                    newRoom.dataset.roomId = response.room_id;
+                    newRoom.classList.add('room-item');
+                    newRoom.classList.add('fade-in'); // Додаємо анімацію появи
+                    
+                    newRoom.innerHTML = `
+                        <span>${response.room_name}</span>
+                        <div class="room-actions">
+                            <button class="edit-room" room-id="${response.room_id}" room-name="${response.room_name}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-room" onclick="deleteRoom(${response.room_id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <a href="chapters/${response.room_id}">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    `;
+
                     roomList.appendChild(newRoom);
                     document.getElementById('roomName').value = '';
                     errorMessage.textContent = '';
+
+                    roomList.appendChild(newRoom);
+                    document.getElementById('roomName').value = '';
+                    errorMessage.textContent = '';
+                    
+                    // Додаємо обробник подій для нової кнопки редагування
+                    newRoom.querySelector('.edit-room').addEventListener('click', function() {
+                        const roomId = this.getAttribute('room-id');
+                        const roomName = this.getAttribute('room-name');
+                        editRoom(roomId, roomName);
+                    });
+                    
+                    showNotification('Нову кімнату успішно додано', 'success');
                 } else {
                     errorMessage.textContent = response.error;
+                    showNotification('Помилка: ' + response.error, 'error');
                 }
             };
             xhr.send('name=' + encodeURIComponent(roomName) +
@@ -183,6 +273,51 @@
         } else {
             errorMessage.textContent = 'Будь ласка, введіть назву кімнати!';
         }
+    }
+
+    function showNotification(message, type = 'info') {
+        // Перевіримо, чи вже існує контейнер для повідомлень
+        let notificationContainer = document.getElementById('notification-container');
+        
+        if (!notificationContainer) {
+            notificationContainer = document.createElement('div');
+            notificationContainer.id = 'notification-container';
+            document.body.appendChild(notificationContainer);
+        }
+        
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="close-notification">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        notificationContainer.appendChild(notification);
+        
+        // Додаємо обробник для закриття повідомлення
+        notification.querySelector('.close-notification').addEventListener('click', () => {
+            notification.classList.add('notification-hide');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        });
+        
+        // Автоматично закриваємо повідомлення через 5 секунд
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.add('notification-hide');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }
+        }, 5000);
     }
 
     document.querySelectorAll('.edit-room').forEach(button => {
@@ -199,5 +334,28 @@
             modal.style.display = "none";
         }
     }
+
+    // Обробляємо натискання клавіші Escape для закриття модального вікна
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeEditModal();
+        }
+    });
+    
+    // Відправка форми редагування по натисканню Enter
+    document.getElementById('editRoomName').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEditedRoom();
+        }
+    });
+    
+    // Відправка форми додавання по натисканню Enter
+    document.getElementById('roomName').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitNewRoom();
+        }
+    });
 </script>
 {% endblock %}

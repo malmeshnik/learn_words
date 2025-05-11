@@ -54,6 +54,10 @@ body {
     position: relative;
 }
 
+a {
+    text-decoration: none;
+  }
+
 .container {
     width: 100%;
     max-width: 1000px;
@@ -181,6 +185,7 @@ h2 {
     width: 36px;
     height: 36px;
     justify-content: center;
+    text-decoration: none;
 }
 
 .room-actions button i,
