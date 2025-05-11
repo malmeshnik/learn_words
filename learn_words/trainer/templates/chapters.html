@@ -1,64 +1,96 @@
 {% extends "base.html" %}
 
-{% block title %}Список розділів{% endblock %}
+{% block title %}Список глав{% endblock %}
 
 {% block extra_styles %}
 <link rel="stylesheet" href="/static/css/rooms.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 {% endblock %}
 
 {% block content %}
 <div class="container">
+    <!-- Модальне вікно для редагування -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeEditModal()">&times;</span>
-            <h2>Редагувати назву розділу</h2>
+            <h2>Редагувати назву глави</h2>
             <form id="editWordForm" class="modal-form">
                 <input type="hidden" id="editRoomId">
-                <input type="text" id="editRoomName" placeholder="Нова назва розділу">
-                <button type="button" onclick="saveEditedRoom()">Зберегти</button>
+                <div class="input-wrapper">
+                    <input type="text" id="editRoomName" placeholder="Нова назва глави" autocomplete="off">
+                </div>
+                <button type="button" onclick="saveEditedRoom()">
+                    <i class="fas fa-save"></i> Зберегти
+                </button>
             </form>
         </div>
     </div>
 
-    <h1>Список розділів</h1>
+    <!-- Спінер завантаження -->
+    <div id="loadingSpinner" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
 
-    <ul class="room-list" id="roomList">
-        {% for chapter in chapters %}
-        <li class="room-item">
-            <span>{{ chapter.name }}</span>
-            <a href="{% url 'rooms' chapter.id %}">Переглянути</a>
-        </li>
-        {% endfor %}
-    </ul>
+    <h1>Список глав</h1>
 
-    <h2>Ваші розділи</h2>
-
-    <ul class="room-list" id="roomUserList">
-        {% if user_chapters %}
-            {% for chapter in user_chapters %}
-            <li class="room-item" data-room-id="{{ chapter.id }}">
+    <!-- Загальні глави -->
+    <div class="section-card">
+        <ul class="room-list" id="roomList">
+            {% for chapter in chapters %}
+            <li class="room-item">
                 <span>{{ chapter.name }}</span>
                 <div class="room-actions">
-                    <button class="edit-room" room-id="{{ chapter.id }}" room-name="{{ chapter.name }}">Редагувати</button>
-                    <button class="delete-room" onclick="deleteRoom({{ chapter.id }})">Видалити</button>
-                    <a href="{% url 'rooms' chapter.id %}">Переглянути</a>
+                    <a href="{% url 'rooms' chapter.id %}">
+                        <i class="fas fa-eye"></i>
+                    </a>
                 </div>
             </li>
             {% endfor %}
-        {% else %}
-            <p>Ви ще не маєте розділів</p>
-        {% endif %}
-    </ul>
-    
-
-    <div class="add-room">
-        <a href="javascript:void(0);" onclick="showAddRoomForm()">Додати новий розділ</a>
+        </ul>
     </div>
 
-    <div class="add-room-form" id="addRoomForm">
-        <input type="text" id="roomName" placeholder="Введіть ім'я розділу" required>
-        <button onclick="submitNewRoom()">Додати</button>
-        <p id="errorMessage" class="error"></p>
+    <!-- Ваші глави -->
+    <div class="section-card">
+        
+        <div class="add-room">
+            <a href="javascript:void(0);" onclick="showAddRoomForm()">
+                <i class="fas fa-plus"></i> Додати нову главу
+            </a>
+        </div>
+        
+        <div class="add-room-form" id="addRoomForm">
+            <input type="text" id="roomName" placeholder="Введіть назву глави" required autocomplete="off">
+            <button onclick="submitNewRoom()">
+                <i class="fas fa-plus"></i> Додати
+            </button>
+            <p id="errorMessage" class="error"></p>
+        </div>
+
+        <ul class="room-list" id="roomUserList">
+            {% if user_chapters %}
+                {% for chapter in user_chapters %}
+                <li class="room-item" data-room-id="{{ chapter.id }}">
+                    <span>{{ chapter.name }}</span>
+                    <div class="room-actions">
+                        <button class="icon-btn edit-room" room-id="{{ chapter.id }}" room-name="{{ chapter.name }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="icon-btn delete-room" onclick="deleteRoom({{ chapter.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <a href="{% url 'rooms' chapter.id %}">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </li>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Ви ще не маєте глав</p>
+                </div>
+            {% endif %}
+        </ul>
     </div>
 </div>
 

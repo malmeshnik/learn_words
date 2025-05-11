@@ -166,23 +166,21 @@ h2 {
 .room-actions {
     display: flex;
     gap: var(--spacing-sm);
-    align-items: center;
 }
 
 .room-actions button,
 .room-actions a {
-    padding: 8px 12px;
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
     cursor: pointer;
     transition: all 0.2s ease;
-    text-decoration: none;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    width: 36px;
+    height: 36px;
     justify-content: center;
-    min-width: 110px;
-    text-align: center;
 }
 
 .room-actions button i,
@@ -190,31 +188,14 @@ h2 {
     margin-right: 5px;
 }
 
-.room-actions a {
-    background-color: var(--accent-primary);
-    color: white;
-}
-
 .room-actions a:hover {
     background-color: var(--accent-secondary);
     transform: translateY(-1px);
 }
 
-.edit-room {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: var(--text-primary);
-    border: none;
-}
-
 .edit-room:hover {
     background-color: rgba(255, 255, 255, 0.12);
     transform: translateY(-1px);
-}
-
-.delete-room {
-    background-color: rgba(229, 57, 53, 0.15);
-    color: var(--error-color);
-    border: none;
 }
 
 .delete-room:hover {
@@ -548,19 +529,21 @@ h2 {
 /* Медіа-запити для адаптивності */
 @media screen and (max-width: 768px) {
     .room-item {
-        flex-direction: column;
+        flex-direction: row;
         align-items: flex-start;
     }
     
     .room-actions {
-        width: 100%;
+        flex-direction: row;
+        gap: var(--spacing-xs);
+        width: 50%;
         justify-content: flex-end;
-        margin-top: var(--spacing-sm);
+        /* margin-top: var(--spacing-sm); */
     }
     
-    .room-item span {
+    /* .room-item span {
         margin-bottom: var(--spacing-sm);
-    }
+    } */
     
     .modal-content {
         margin: 20% auto;
@@ -583,12 +566,13 @@ h2 {
     }
     
     .room-actions {
-        flex-direction: column;
+        flex-direction: row;
         gap: var(--spacing-xs);
     }
     
     .room-actions button,
     .room-actions a {
+        gap: var(--spacing-xs);
         width: 100%;
     }
 }
