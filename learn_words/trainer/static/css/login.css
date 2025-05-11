@@ -1,0 +1,228 @@
+:root {
+    /* Темна тема - основні кольори */
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-elevated: #252525;
+    --text-primary: #e4e6eb;
+    --text-secondary: #b0b3b8;
+    --text-muted: #777;
+    --border-color: #333;
+    --accent-primary: #4f8aff;
+    --accent-secondary: #3a6fc7;
+    --success-color: #4caf50;
+    --error-color: #e53935;
+    --warning-color: #ff9800;
+    --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    
+    /* Розміри */
+    --border-radius-sm: 6px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 15px;
+    --spacing-xs: 5px;
+    --spacing-sm: 10px;
+    --spacing-md: 15px;
+    --spacing-lg: 20px;
+    --spacing-xl: 30px;
+    
+    /* Шрифт */
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 24px;
+    --font-size-xxl: 32px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Картка входу */
+.login-card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--card-shadow);
+    width: 90%;
+    max-width: 420px;
+    overflow: hidden;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card-header {
+    background-color: var(--bg-elevated);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-header i {
+    margin-right: var(--spacing-sm);
+    color: var(--accent-primary);
+}
+
+.card-body {
+    padding: var(--spacing-xl);
+}
+
+/* Форма */
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: var(--spacing-md);
+}
+
+.input-group i {
+    position: absolute;
+    left: var(--spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    transition: all 0.2s ease;
+}
+
+input:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(79, 138, 255, 0.15);
+}
+
+input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Кнопки */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+.btn:hover {
+    background-color: var(--accent-secondary);
+    transform: translateY(-2px);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* Повідомлення про помилки */
+.error-message {
+    background-color: rgba(229, 57, 53, 0.1);
+    color: var(--error-color);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}
+
+/* Посилання */
+.register-link {
+    display: block;
+    text-align: center;
+    margin-top: var(--spacing-lg);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+    font-size: var(--font-size-sm);
+}
+
+.register-link:hover {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+/* Спінер завантаження */
+#loadingSpinner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-left: 4px solid var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Адаптивність */
+@media screen and (max-width: 480px) {
+    .login-card {
+        width: 95%;
+    }
+    
+    .card-body {
+        padding: var(--spacing-lg);
+    }
+}

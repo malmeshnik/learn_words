@@ -1,84 +1,907 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f8f9fa;
+/* Додаткові стилі для сторінки категорій */
+:root {
+    /* Темна тема - основні кольори */
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-elevated: #252525;
+    --text-primary: #e4e6eb;
+    --text-secondary: #b0b3b8;
+    --text-muted: #777;
+    --border-color: #333;
+    --accent-primary: #4f8aff;
+    --accent-secondary: #3a6fc7;
+    --success-color: #4caf50;
+    --error-color: #e53935;
+    --warning-color: #ff9800;
+    --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    
+    /* Розміри */
+    --border-radius-sm: 6px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 15px;
+    --spacing-xs: 5px;
+    --spacing-sm: 10px;
+    --spacing-md: 15px;
+    --spacing-lg: 20px;
+    --spacing-xl: 30px;
+    
+    /* Шрифт */
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 24px;
+    --font-size-xxl: 32px;
+}
+
+/* Базові стилі */
+* {
+    box-sizing: border-box;
     margin: 0;
-    padding: 20px;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .container {
-    max-width: 800px;
-    margin: auto;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+}
+
+main.container {
+    flex: 1;
+    padding-bottom: var(--spacing-xl);
+}
+
+/* Заголовки */
+h1, h2, h3, h4 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
 }
 
 h1 {
-    text-align: center;
-    margin-bottom: 20px;
+    font-size: var(--font-size-xxl);
 }
 
-.categories {
+h2 {
+    font-size: var(--font-size-xl);
+}
+
+h3 {
+    font-size: var(--font-size-lg);
+}
+
+/* Картки */
+.card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--card-shadow);
+    /* margin-bottom: var(--spacing-xl); */
+    overflow: hidden;
+}
+
+.card-header {
+    background-color: var(--bg-elevated);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-header h2, .card-header h3 {
+    margin-bottom: 0;
     display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.category-block {
-    background-color: #fff;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    transition: 0.3s ease;
-}
-
-.category-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
 }
 
-.toggle-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+.card-header i {
+    margin-right: var(--spacing-sm);
+    color: var(--accent-primary);
+}
+
+.card-body {
+    padding: var(--spacing-lg);
+}
+
+/* Перемикач (toggle) */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.mode-label {
+    font-weight: 500;
+    margin-right: var(--spacing-md);
+    min-width: 150px;
+}
+
+.toggle-switch {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-switch input[type="checkbox"] {
+    height: 0;
+    width: 0;
+    visibility: hidden;
+    position: absolute;
+}
+
+.toggle-switch label {
     cursor: pointer;
-    font-size: 14px;
+    width: 52px;
+    height: 26px;
+    background: var(--text-muted);
+    display: block;
+    border-radius: 100px;
+    position: relative;
+    margin-right: var(--spacing-md);
+    transition: background-color 0.3s;
 }
 
-.toggle-btn:hover {
-    background-color: #0056b3;
+.toggle-switch label:after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 100%;
+    transition: 0.3s;
 }
 
-.words-list {
-    margin-top: 10px;
-    padding-left: 10px;
+.toggle-switch input:checked + label {
+    background: var(--accent-primary);
 }
 
-.hidden {
-    display: none;
+.toggle-switch input:checked + label:after {
+    left: calc(100% - 3px);
+    transform: translateX(-100%);
+}
+
+.toggle-switch input:focus + label {
+    box-shadow: 0 0 0 2px rgba(79, 138, 255, 0.5);
+}
+
+#playbackModeText {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.playback-description {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-sm);
+}
+
+/* Списки слів */
+.word-section .card-body {
+    padding-top: 0;
+}
+
+.word-list-container h3 {
+    margin: var(--spacing-lg) 0 var(--spacing-md);
+    padding-left: var(--spacing-sm);
+    border-left: 3px solid var(--accent-primary);
+    font-size: var(--font-size-md);
+}
+
+.word-list {
+    list-style: none;
+    padding: 0;
 }
 
 .word-item {
-    display: block;
-    padding: 4px 0;
-    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--bg-elevated);
+    margin-bottom: var(--spacing-sm);
+    transition: all 0.2s ease;
 }
 
-.submit-block {
-    text-align: center;
-    margin-top: 30px;
+.word-item:hover {
+    background-color: #2a2a2a;
+    transform: translateY(-2px);
 }
 
-button[type="submit"] {
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    font-size: 16px;
+.word-label {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
     cursor: pointer;
 }
 
-button[type="submit"]:hover {
-    background-color: #45a049;
+/* Кастомні чекбокси */
+.checkbox-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-right: var(--spacing-md);
+}
+
+.word-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: relative;
+    display: inherit;
+    height: 22px;
+    width: 22px;
+    background-color: #2d2d2d;
+    border: 2px solid var(--text-muted);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    gap: var(--spacing-sm);
+}
+
+.word-checkbox:checked ~ .checkmark {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.word-checkbox:focus ~ .checkmark {
+    box-shadow: 0 0 0 2px rgba(79, 138, 255, 0.5);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    gap: var(--spacing-sm);
+}
+
+.word-checkbox:checked ~ .checkmark:after {
+    display: block;
+}
+
+/* Вміст слова */
+.word-content {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.word-en {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.divider {
+    margin: 0 var(--spacing-sm);
+    color: var(--text-muted);
+}
+
+.word-ru {
+    color: var(--text-secondary);
+}
+
+/* Кнопки дій зі словами */
+.word-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.edit-word:hover {
+    color: var(--accent-primary);
+}
+
+.delete-word:hover {
+    color: var(--error-color);
+}
+
+/* Кнопки */
+.word-controls {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    min-height: 42px;
+}
+
+.btn i {
+    margin-right: var(--spacing-xs);
+}
+
+.primary-btn,
+.secondary-btn {
+    padding: 14px 24px;
+    font-size: var(--font-size-md); /* 16px */
+    border-radius: var(--border-radius-lg); /* 15px */
+    min-height: 48px;
+}
+
+.primary-btn {
+    background-color: var(--accent-primary);
+    color: white;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.primary-btn:hover {
+    background-color: var(--accent-secondary);
+    transform: translateY(-1px);
+}
+
+.secondary-btn {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.secondary-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn:focus {
+    box-shadow: 0 0 0 2px rgba(79, 138, 255, 0.5);
+}
+
+/* Форма додавання слова */
+.add-word-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-row {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.input-group {
+    flex: 1;
+    min-width: 250px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(79, 138, 255, 0.15);
+}
+
+.input-group input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Повідомлення про помилки й успіхи */
+.feedback-message {
+    text-align: center;
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-weight: 500;
+}
+
+.feedback-message:empty {
+    display: none;
+}
+
+.feedback-message.success {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #81c784;
+}
+
+.feedback-message.error {
+    background-color: rgba(229, 57, 53, 0.1);
+    color: #e57373;
+}
+
+.error-message {
+    color: var(--error-color);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-sm);
+    text-align: center;
+}
+
+/* Модальне вікно */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    overflow: auto;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: block;
+    opacity: 1;
+}
+
+.modal-content {
+    background-color: var(--bg-secondary);
+    margin: 10% auto;
+    width: 90%;
+    max-width: 500px;
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s forwards;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+}
+
+.close-modal {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-modal:hover {
+    color: var(--text-primary);
+}
+
+.modal-form {
+    padding: var(--spacing-lg);
+}
+
+/* Заголовок та футер сторінки */
+.page-header {
+    background-color: var(--bg-elevated);
+    padding: var(--spacing-lg) 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: var(--spacing-xl);
+}
+
+.page-header h1 {
+    margin: 0;
+    text-align: center;
+}
+
+.page-footer {
+    background-color: var(--bg-elevated);
+    padding: var(--spacing-lg) 0;
+    margin-top: var(--spacing-xl);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+/* Спінер завантаження */
+#loadingSpinner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-left: 4px solid var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* CSV зображення */
+.csv-image-container {
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    overflow: hidden;
+}
+
+.csv-image-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: var(--border-radius-sm);
+}
+
+/* Медіа-запити для адаптивності */
+@media screen and (max-width: 768px) {
+    :root {
+        --font-size-xxl: 26px;
+        --font-size-xl: 22px;
+    }
+    
+    .container {
+        padding: 0 var(--spacing-md);
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .word-controls {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    .modal-content {
+        margin: 20% auto;
+        width: 95%;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    :root {
+        --spacing-lg: 15px;
+        --spacing-xl: 25px;
+    }
+    
+    .word-item {
+        flex-direction: row;
+    }
+    
+    .word-actions {
+        width: 15%;
+        justify-content: flex-end;
+        /* margin-top: var(--spacing-sm); */
+    }
+    
+    .page-header h1 {
+        font-size: var(--font-size-xl);
+    }
+}
+
+/* Стилі для поліпшення доступності */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+@media (forced-colors: active) {
+    .toggle-switch label:after {
+        background: ButtonText;
+    }
+}
+
+/* Утиліти для роботи з темною темою */
+.dark-theme {
+    color-scheme: dark;
+}
+
+/* Удосконалення для зображень CSV */
+.csv-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: var(--spacing-md) 0;
+    overflow: hidden;
+    border-radius: var(--border-radius-sm);
+}
+
+.csv-table th, .csv-table td {
+    text-align: left;
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+}
+
+.csv-table th {
+    background-color: var(--bg-elevated);
+    color: var(--accent-primary);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.csv-table tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.csv-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.table-responsive {
+    overflow-x: auto;
+    max-width: 100%;
+    margin: var(--spacing-md) 0;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-elevated);
+}
+
+/* Стилі для інтерактивних елементів фокусу (доступність) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+/* Стилі для блоку категорії */
+/* .category-block {
+    margin-bottom: var(--spacing-xl);
+} */
+
+.category-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+/* Перемикач випадкового відтворення */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.random-checkbox {
+    height: 0;
+    width: 0;
+    visibility: hidden;
+    position: absolute;
+}
+
+.toggle-container label {
+    cursor: pointer;
+    width: 52px;
+    height: 26px;
+    background: var(--text-muted);
+    display: block;
+    border-radius: 100px;
+    position: relative;
+    transition: background-color 0.3s;
+}
+
+.toggle-container label:after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 100%;
+    transition: 0.3s;
+}
+
+.random-checkbox:checked + label {
+    background: var(--accent-primary);
+}
+
+.random-checkbox:checked + label:after {
+    left: calc(100% - 3px);
+    transform: translateX(-100%);
+}
+
+/* Блок вибору всіх слів */
+.select-all-block {
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Стилі для блоку з всіма категоріями */
+.categories {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+/* Форма додавання слова внизу категорії */
+.add-word-form {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.category-block .add-word-form .form-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.category-block .add-word-form .input-group {
+    flex: 1;
+}
+
+/* Блок кнопки відправки форми */
+.submit-block {
+    margin-top: var(--spacing-xl);
+    text-align: center;
+}
+
+/* Адаптивність для мобільних пристроїв */
+@media screen and (max-width: 768px) {
+    .category-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .category-controls .toggle-container,
+    .category-controls .toggle-btn {
+        width: 100%;
+    }
+    
+    .category-block .add-word-form .form-row {
+        flex-direction: column;
+    }
+    
+    .category-block .add-word-form .primary-btn {
+        width: 100%;
+    }
+}
+
+/* Анімації для взаємодії з елементами */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.word-item {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Покращені стилі для активних станів елементів */
+.word-item:active {
+    background-color: #303030;
+}
+
+.primary-btn:active, 
+.secondary-btn:active {
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.2);
+}
+
+.fa-plus, 
+.fa-play {
+    margin-right: var(--spacing-xs);
+}
+
+/* Стилі для показу помилок валідації */
+input:invalid {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.15);
+}
+
+/* Додаткові стилі для текстових повідомлень */
+.feedback-message {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+/* Анімація для кнопок дій */
+.word-actions .icon-btn {
+    transform: scale(1);
+    transition: transform 0.2s ease;
+}
+
+.word-actions .icon-btn:hover {
+    transform: scale(1.1);
 }

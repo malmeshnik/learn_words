@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="uk" class="dark-theme">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Слова кімнати</title>
     <link rel="stylesheet" href="/static/css/room_words.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <!-- Додаємо Font Awesome для кращих іконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-
+    <!-- Спінер завантаження -->
     <div id="loadingSpinner">
         <div class="spinner"></div>
     </div>
@@ -16,83 +17,152 @@
     <!-- Модальне вікно для редагування слова -->
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeEditModal()">&times;</span>
-            <h2>Редагувати слово</h2>
+            <div class="modal-header">
+                <h2>Редагувати слово</h2>
+                <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            </div>
             <form id="editWordForm" class="modal-form">
                 <input type="hidden" id="editWordId">
-                <input type="text" id="editWordEn" placeholder="Слово англійською">
-                <button type="button" onclick="saveEditedWord()">Зберегти</button>
+                <div class="input-group">
+                    <label for="editWordEn">Слово англійською</label>
+                    <input type="text" id="editWordEn" placeholder="Введіть слово англійською">
+                </div>
+                <button type="button" class="primary-btn" onclick="saveEditedWord()">
+                    <i class="fas fa-save"></i> Зберегти
+                </button>
             </form>
         </div>
     </div>
 
-    <div class="container">
-        <h1>Слова для кімнати "{{ room.name }}"</h1>
+    <header class="page-header">
+        <div class="container">
+            <h1>
+                <i class="fas fa-language"></i> 
+                Слова для кімнати "{{ room.name }}"
+            </h1>
+        </div>
+    </header>
 
-        <div class="playback-mode">
-            <h3>Режим відтворення слів</h3>
-            <div class="toggle-switch">
-                <input type="checkbox" id="randomPlayback">
-                <label for="randomPlayback"></label>
-                <span id="playbackModeText">{% if user_settings.random_playback %}Випадковий порядок{% else %}Послідовний порядок{% endif %}</span>
+    <main class="container">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-sliders"></i> Налаштування відтворення</h3>
+            </div>
+            <div class="card-body">
+                <div class="toggle-container">
+                    <div class="mode-label">Режим відтворення:</div>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="randomPlayback" {% if user_settings.random_playback %}checked{% endif %}>
+                        <label for="randomPlayback"></label>
+                        <span id="playbackModeText">
+                            {% if user_settings.random_playback %}Випадковий порядок{% else %}Послідовний порядок{% endif %}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 
-
-        <form id="wordSelectionForm">
-            <ul id="wordList">
-                {% for word in words %}
-                    <li class="word-item">
-                        <label class="word-label">
-                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
-                            <span class="word-text">{{ word.en }} - {{ word.ru }}</span>
-                        </label>
-                    </li>
-                {% endfor %}
-            </ul>
-
-            <ul id="userWordList">
-                {% for word in user_words %}
-                    <li class="word-item">
-                        <label class="word-label">
-                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
-                            <div class="word-text">
-                                <span class="word-en" id="wordEn">{{ word.en }}</span>
-                                <span> - </span>
-                                <span class="word-ru" id="wordRu">{{ word.ru }}</span>
-                            </div>
-                            <div class='edit-word' id="editWord">
-                                <i class="fas fa-edit"></i>
-                            </div>
-                            <button class='delete-word' onclick="deleteWord({{ word.id }})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </label>
-                    </li>
-                {% endfor %}
-            </ul>
-
-            {% csrf_token %}
-            <div>
-                <button type="button" onclick="toggleSelectAll()" class="add-btn" style="margin-bottom: 20px;">Вибрати все</button>
-                <button type="button" onclick="addSelectedWords()" class="add-btn">Додати обрані до мого списку</button>
+        <div class="card word-section">
+            <div class="card-header">
+                <h2><i class="fas fa-list"></i> Доступні слова</h2>
             </div>
-        </form>
+            <div class="card-body">
+                <form id="wordSelectionForm">
+                    {% csrf_token %}
+                    
+                    <!-- Кнопки управління -->
+                    <div class="word-controls">
+                        <button type="button" onclick="toggleSelectAll()" class="secondary-btn">
+                            <i class="fas fa-check-double"></i> <span id="selectAllText">Вибрати все</span>
+                        </button>
+                        <button type="button" onclick="addSelectedWords()" class="primary-btn">
+                            <i class="fas fa-plus-circle"></i> Додати обрані до мого списку
+                        </button>
+                    </div>
 
-        <div id="message"></div>
-    </div>
+                    <!-- Загальні слова кімнати -->
+                    <div class="word-list-container">
+                        <ul id="wordList" class="word-list">
+                            {% for word in words %}
+                                <li class="word-item">
+                                    <label class="word-label">
+                                        <div class="checkbox-wrapper">
+                                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
+                                            <span class="checkmark"></span>
+                                        </div>
+                                        <div class="word-content">
+                                            <span class="word-en">{{ word.en }}</span>
+                                            <span class="divider">-</span>
+                                            <span class="word-ru">{{ word.ru }}</span>
+                                        </div>
+                                    </label>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
 
-    <!-- Форма для додавання нового слова -->
-    <div id="addWordForm">
-        {% csrf_token %}
-        <input type="text" id="addWordEn" placeholder="Введіть слово англійською" required>
-        <button class='add-word-btn' onclick="submitNewWord()">Додати слово</button>
-        <p id="wordErrorMessage"></p>
-    </div>
+                    <!-- Ваші слова в кімнаті -->
+                    <div class="word-list-container">
+                        <ul id="userWordList" class="word-list">
+                            {% for word in user_words %}
+                                <li class="word-item">
+                                    <label class="word-label">
+                                        <div class="checkbox-wrapper">
+                                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
+                                            <span class="checkmark"></span>
+                                        </div>
+                                        <div class="word-content">
+                                            <span class="word-en" id="wordEn">{{ word.en }}</span>
+                                            <span class="divider">-</span>
+                                            <span class="word-ru" id="wordRu">{{ word.ru }}</span>
+                                        </div>
+                                    </label>
+                                    <div class="word-actions">
+                                        <button type="button" class="icon-btn edit-word" onclick="editWord('{{ word.id }}', '{{ word.en }}')">
+                                            <i class="fas fa-pen"></i>
+                                        </button>
+                                        <button type="button" class="icon-btn delete-word" onclick="deleteWord('{{ word.id }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </form>
+
+                <!-- Повідомлення про успіх/помилку -->
+                <div id="message" class="feedback-message"></div>
+            </div>
+        </div>
+
+        <!-- Форма для додавання нового слова -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-plus"></i> Додати нове слово</h3>
+            </div>
+            <div class="card-body">
+                <form id="addWordForm" class="add-word-form">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="addWordEn">Слово англійською</label>
+                            <input type="text" id="addWordEn" placeholder="Введіть слово англійською" required>
+                        </div>
+                        <button type="button" class="primary-btn" onclick="submitNewWord()">
+                            <i class="fas fa-plus"></i> Додати слово
+                        </button>
+                    </div>
+                    <p id="wordErrorMessage" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+    </main>
 
     <script>
         let allSelected = false;
-        let isRandom = false;
+        let isRandom = {% if user_settings.random_playback %}true{% else %}false{% endif %};
+        
         // Функція для показу спінера перед переходом на іншу сторінку
         function showSpinner() {
             document.getElementById('loadingSpinner').style.display = 'flex';
@@ -105,7 +175,7 @@
                 checkbox.checked = allSelected;
             });
         
-            const button = document.querySelector('button[onclick="toggleSelectAll()"]');
+            const button = document.getElementById('selectAllText');
             button.textContent = allSelected ? "Скасувати вибір" : "Вибрати все";
         }        
 
@@ -121,48 +191,52 @@
 
             if (wordEn.trim() !== '') {
                 var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                showSpinner();
 
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', '/add_word/', true);
                 xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                 xhr.onload = function () {
                     var response = JSON.parse(xhr.responseText);
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    
                     if (response.success) {
                         var wordList = document.getElementById('userWordList');
                         var newLi = document.createElement('li');
-                        var newLabel = document.createElement('label');
-                        var newCheckbox = document.createElement('input');
-                        var newSpan = document.createElement('span');
-                        var editDiv = document.createElement('div');
-                        var deleteDiv = document.createElement('div');
-
                         newLi.classList.add('word-item');
-                        newLabel.classList.add('word-label');
-                        newCheckbox.classList.add('word-checkbox');
-                        newSpan.classList.add('word-text');
-                        editDiv.classList.add('edit-word');
-                        deleteDiv.classList.add('delete-word');
-
-                        newCheckbox.type = 'checkbox';
-                        newCheckbox.name = 'selected_words';
-                        newCheckbox.value = response.id;
-
-                        newSpan.textContent = response.en + ' - ' + response.ru;
-                        editDiv.textContent = 'редагувати';
-                        deleteDiv.textContent = 'видалити';
-
-                        editDiv.onclick = function() { editWord(response.id, response.en, response.ru); };
-                        deleteDiv.onclick = function() { deleteWord(response.id); };
-
-                        newLabel.appendChild(newCheckbox);
-                        newLabel.appendChild(newSpan);
-                        newLabel.appendChild(editDiv);
-                        newLabel.appendChild(deleteDiv);
-                        newLi.appendChild(newLabel);
+                        newLi.innerHTML = `
+                            <label class="word-label">
+                                <div class="checkbox-wrapper">
+                                    <input class="word-checkbox" type="checkbox" name="selected_words" value="${response.id}">
+                                    <span class="checkmark"></span>
+                                </div>
+                                <div class="word-content">
+                                    <span class="word-en" id="wordEn">${response.en}</span>
+                                    <span class="divider">-</span>
+                                    <span class="word-ru" id="wordRu">${response.ru}</span>
+                                </div>
+                            </label>
+                            <div class="word-actions">
+                                <button type="button" class="icon-btn edit-word" onclick="editWord('${response.id}', '${response.en}')">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button type="button" class="icon-btn delete-word" onclick="deleteWord('${response.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
                         wordList.appendChild(newLi);
 
-                        document.getElementById('wordEn').value = '';
+                        document.getElementById('addWordEn').value = '';
                         errorMessage.textContent = '';
+                        
+                        const messageEl = document.getElementById("message");
+                        messageEl.textContent = "Слово успішно додано!";
+                        messageEl.className = "feedback-message success";
+                        setTimeout(() => {
+                            messageEl.textContent = "";
+                            messageEl.className = "feedback-message";
+                        }, 3000);
                     } else {
                         errorMessage.textContent = response.error;
                     }
@@ -183,10 +257,14 @@
             
             // Відкриваємо модальне вікно
             document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editModal').classList.add('show');
         }
 
         function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editModal').classList.remove('show');
+            setTimeout(() => {
+                document.getElementById('editModal').style.display = 'none';
+            }, 300);
         }
 
         function saveEditedWord() {
@@ -228,16 +306,27 @@
                         }
                     }
                     
-                    document.getElementById("message").innerText = "Слово успішно оновлено!";
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Слово успішно оновлено!";
+                    messageEl.className = "feedback-message success";
+                    setTimeout(() => {
+                        messageEl.textContent = "";
+                        messageEl.className = "feedback-message";
+                    }, 3000);
+                    
                     closeEditModal();
                 } else {
-                    document.getElementById("message").innerText = "Помилка при оновленні слова.";
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Помилка при оновленні слова.";
+                    messageEl.className = "feedback-message error";
                 }
                 document.getElementById('loadingSpinner').style.display = 'none';
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById("message").innerText = "Помилка при оновленні слова.";
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = "Помилка при оновленні слова.";
+                messageEl.className = "feedback-message error";
                 document.getElementById('loadingSpinner').style.display = 'none';
             });
         }
@@ -259,25 +348,40 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        document.getElementById("message").innerText = "Слово видалено з вашого списку!";
+                        const messageEl = document.getElementById("message");
+                        messageEl.textContent = "Слово видалено з вашого списку!";
+                        messageEl.className = "feedback-message success";
                         
-                        // Видаляємо елемент з DOM
+                        // Видаляємо елемент з DOM з анімацією
                         const wordItems = document.querySelectorAll('.word-item');
                         for (let item of wordItems) {
                             const checkbox = item.querySelector('input[type="checkbox"]');
                             if (checkbox && checkbox.value == wordId) {
-                                item.remove();
+                                item.style.opacity = '0';
+                                item.style.transform = 'translateX(20px)';
+                                setTimeout(() => {
+                                    item.remove();
+                                }, 300);
                                 break;
                             }
                         }
+                        
+                        setTimeout(() => {
+                            messageEl.textContent = "";
+                            messageEl.className = "feedback-message";
+                        }, 3000);
                     } else {
-                        document.getElementById("message").innerText = "Помилка при видаленні.";
+                        const messageEl = document.getElementById("message");
+                        messageEl.textContent = "Помилка при видаленні.";
+                        messageEl.className = "feedback-message error";
                     }
                     document.getElementById('loadingSpinner').style.display = 'none';
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById("message").innerText = "Помилка при видаленні.";
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Помилка при видаленні.";
+                    messageEl.className = "feedback-message error";
                     document.getElementById('loadingSpinner').style.display = 'none';
                 });
             }
@@ -288,7 +392,13 @@
                 .map(cb => cb.value);
                 
             if (selected.length === 0) {
-                document.getElementById("message").innerText = "Будь ласка, виберіть слова для додавання.";
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = "Будь ласка, виберіть слова для додавання.";
+                messageEl.className = "feedback-message error";
+                setTimeout(() => {
+                    messageEl.textContent = "";
+                    messageEl.className = "feedback-message";
+                }, 3000);
                 return;
             }
             
@@ -303,51 +413,68 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken,
                 },
-                body: JSON.stringify({word_ids: selected,
-                                      is_random: isRandom}),
+                body: JSON.stringify({
+                    word_ids: selected,
+                    is_random: isRandom
+                }),
             })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById("message").innerText = "Слова додано до вашого списку!";
-                    window.location.href = "/categories/"; // Переходимо на сторінку
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Слова додано до вашого списку!";
+                    messageEl.className = "feedback-message success";
+                    
+                    // Додаємо невелику затримку перед переходом для показу повідомлення
+                    setTimeout(() => {
+                        window.location.href = "/categories/";
+                    }, 1000);
                 } else {
-                    document.getElementById("message").innerText = "Помилка при додаванні.";
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Помилка при додаванні.";
+                    messageEl.className = "feedback-message error";
                     document.getElementById('loadingSpinner').style.display = 'none';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById("message").innerText = "Помилка при додаванні.";
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = "Помилка при додаванні.";
+                messageEl.className = "feedback-message error";
                 document.getElementById('loadingSpinner').style.display = 'none';
             });
         }
-
-        document.querySelectorAll('.edit-word').forEach(button => {
-            button.addEventListener('click', function() {
-                const wordItem = this.closest('.word-label');
-                const wordId = wordItem.querySelector('input[type="checkbox"]').value;
-                const wordEn = wordItem.querySelector('.word-text span#wordEn').textContent;
-                editWord(wordId, wordEn);
-            });
-        });
 
         document.getElementById('randomPlayback').addEventListener('change', function() {
             isRandom = this.checked;
             const modeText = document.getElementById('playbackModeText');
             modeText.textContent = isRandom ? 'Випадковий порядок' : 'Послідовний порядок';
             
+            // Анімація зміни тексту
+            modeText.style.opacity = '0';
+            setTimeout(() => {
+                modeText.style.opacity = '1';
+            }, 200);
         });
-
 
         // Закривання модального вікна при кліку поза ним
         window.onclick = function(event) {
             const modal = document.getElementById('editModal');
             if (event.target == modal) {
-                modal.style.display = "none";
+                closeEditModal();
             }
         }
-    </script>
 
+        // Додаткові анімації для покращення взаємодії
+        document.querySelectorAll('.word-item').forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
 </body>
 </html>
