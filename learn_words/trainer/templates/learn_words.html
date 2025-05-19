@@ -689,9 +689,9 @@
             
             isContinuingPlayback = false;
             
-            if (index == words.length) {
+            {% comment %} if (index == words.length) {
                 PlayingSentences();
-            }
+            } {% endcomment %}
         }
 
         // Збереження налаштувань користувача на сервері
@@ -726,43 +726,47 @@
             
             currentIndex = 0;
             index = 0;
-            
+
             saveSettingsToSession();
             saveUserSettings();
+
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('settingsBlock').style.display = 'none';
             document.getElementById('sentenceControls').style.display = 'flex';
             document.getElementById('pauseBtnLabel').style.display = 'inline-flex';
             document.getElementById('showTranslation').style.display = 'inline-flex';
-            
+
             // Підготовка масиву речень відповідно до налаштувань
             adjustSentencesArray();
-            
+
             for (let i = 0; i < settings.lessonRepeatCount; i++) {
                 console.log(`=== Повторення №${i + 1} ===`);
                 currentIndex = 0;
                 index = 0;
-                
+
                 if (enableWordAudio) {
                     document.getElementById("backSentenceButton").style.display = 'none';
                     document.getElementById('BackWordButton').style.display = 'inline-flex';
-                    
-                    await playingWords();
+
+                    await playingWords(); // Очікуємо завершення слів
                 }
-                
+
                 if (enableSentenceAudio) {
                     document.getElementById("BackWordButton").style.display = 'none';
                     document.getElementById("backSentenceButton").style.display = 'inline-flex';
-                    
-                    await PlayingSentences();
+
+                    await PlayingSentences(); // Очікуємо завершення речень
                 }
             }
-            
+
+            // Показуємо завершення лише після всіх повторень
+            console.log('=== Завершено всі повторення ===');
             document.getElementById('wordBox').textContent = "Готово! 🎉";
             document.getElementById('translationBox').textContent = "";
             document.getElementById('restartButton').style.display = 'block';
             document.getElementById('mainMenuButton').style.display = 'block';
         }
+
 
         // Отримання налаштувань з полів введення
         function getDelaySettings() {
