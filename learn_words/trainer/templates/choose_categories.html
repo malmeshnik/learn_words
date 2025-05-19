@@ -340,11 +340,6 @@
                 });
                 
                 const checkboxes = document.querySelectorAll('input[name="words"]:checked');
-                
-                if (checkboxes.length === 0) {
-                    showMessage("Будь ласка, виберіть хоча б одне слово!", "error");
-                    return;
-                }
 
                 const categorizedWords = {};
                 checkboxes.forEach(cb => {
