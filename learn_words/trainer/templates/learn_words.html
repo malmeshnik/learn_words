@@ -38,6 +38,7 @@
         --font-size-lg: 18px;
         --font-size-xl: 24px;
         --font-size-xxl: 32px;
+        --font-size-xxxl: 40px;
     }
 
     /* Базові стилі */
@@ -192,7 +193,7 @@
 
     /* Слово та переклад */
     .word-box {
-        font-size: var(--font-size-xxl);
+        font-size: var(--font-size-xxxl);
         text-align: center;
         padding: var(--spacing-xl) 0;
         margin: var(--spacing-md) 0;
@@ -204,7 +205,7 @@
     }
 
     .translation {
-        font-size: var(--font-size-xl);
+        font-size: var(--font-size-xxl);
         text-align: center;
         color: var(--accent-primary);
         margin-bottom: var(--spacing-xl);
@@ -548,10 +549,10 @@
                 await pauseForTranslation(settings.delayBeforeTranslation, 50);
                 
                 if (!hideTranslation) {
+                    document.getElementById('translationBox').textContent = translationText;
                     if (enableAudio) {
                         await playAudio(ruAudioPath);
                     }
-                    document.getElementById('translationBox').textContent = translationText;
                 }
             }
             
