@@ -342,7 +342,7 @@
                         <input type="number" id="pauseBetween" value="{{ user_settings.pause_between }}" min="0">
                     </div>
                     <div>
-                        <label for="delayBeforeTranslation">⏳ Затримка перед перекладом (с):</label>
+                        <label for="delayBeforeTranslation">⏳ Додати час перед перекладом (с):</label>
                         <input type="number" id="delayBeforeTranslation" value="{{ user_settings.delay_before_translation }}" min="0.5">
                     </div>
                     <div>
@@ -359,7 +359,7 @@
                             <span>❌ Не показувати переклад</span>
                         </div>
                         <div class="checkbox-label">
-                            <input type="checkbox" id="enableWordAudio">
+                            <input type="checkbox" id="enableWordAudio" checked>
                             <span>🔊 Озвучувати слова</span>
                         </div>
                         <div class="checkbox-label">
@@ -517,7 +517,7 @@
                     await playAudio(ruAudioPath);
                 }
                 
-                await pauseForTranslation(settings.pauseBetween, 50);
+                await pauseForTranslation(settings.delayBeforeTranslation, 50);
                 await waitWhilePaused();
                 
                 // Потім показуємо і відтворюємо оригінал
