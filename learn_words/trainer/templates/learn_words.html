@@ -390,7 +390,7 @@
         <div class="result-buttons" id="mainMenuButton">
             <button onclick="goToMainMenu()">🏠 Головне меню</button>
         </div> 
-        <div class="result-buttons" id="restartButton" style="display: none;">
+        <div class="result-buttons" id="restartButton">
             <button onclick="restartLearning()">⚙️ Налаштування</button>
         </div> 
 
@@ -556,7 +556,6 @@
             }
             
             await waitWhilePaused();
-            await sleep(settings.pauseBetween);
             
             // Додаємо слово до списку вивчених (тільки для слів)
             if (isWord) {
@@ -660,8 +659,8 @@
                 // Якщо дійшли до кінця природним шляхом
                 document.getElementById('wordBox').textContent = "Готово! 🎉";
                 document.getElementById('translationBox').textContent = "";
-                document.getElementById('restartButton').style.display = 'block';
-                document.getElementById('mainMenuButton').style.display = 'block';
+                document.getElementById('restartButton').style.display = 'flex';
+                document.getElementById('mainMenuButton').style.display = 'flex';
             }
             
             isContinuingPlayback = false;
@@ -763,8 +762,8 @@
             console.log('=== Завершено всі повторення ===');
             document.getElementById('wordBox').textContent = "Готово! 🎉";
             document.getElementById('translationBox').textContent = "";
-            document.getElementById('restartButton').style.display = 'block';
-            document.getElementById('mainMenuButton').style.display = 'block';
+            document.getElementById('restartButton').style.display = 'flex';
+            document.getElementById('mainMenuButton').style.display = 'flex';
         }
 
 
@@ -815,42 +814,12 @@
             stopCurrentTranslation = true;
             isContinuingPlayback = false;
             
-            // Скидання інтерфейсу
-            document.getElementById('wordBox').textContent = "";
-            document.getElementById('translationBox').textContent = "";
-            document.getElementById('wordsContainer').innerHTML = "";
-            document.getElementById('startBtn').style.display = 'block';
-            document.getElementById('settingsBlock').style.display = 'block';
-            document.getElementById('sentenceControls').style.display = 'none';
-            document.getElementById('restartButton').style.display = 'none';
-            document.getElementById('mainMenuButton').style.display = 'block';
-            
-            // Скидання індексів
-            currentIndex = 0;
-            index = 0;
+            window.location.href = '/'
         }
 
         // Функція перезапуску навчання
         function restartLearning() {
-            // Зупинка всіх процесів
-            stopCurrentAudio();
-            stopCurrentTranslation = true;
-            isContinuingPlayback = false;
-            
-            // Скидання інтерфейсу
-            document.getElementById('wordBox').textContent = "";
-            document.getElementById('translationBox').textContent = "";
-            document.getElementById('wordsContainer').innerHTML = "";
-            document.getElementById('settingsBlock').style.display = 'block';
-            document.getElementById('startBtn').style.display = 'block';
-            document.getElementById('sentenceControls').style.display = 'none';
-            document.getElementById('restartButton').style.display = 'none';
-            
-            // Скидання індексів, але збереження налаштувань
-            currentIndex = 0;
-            index = 0;
-            isPaused = false;
-            document.getElementById("pauseBtnLabel").textContent = '⏸️ Пауза';
+            window.location.reload();
         }
 
         // Обробник кнопки "Показати переклад"
@@ -890,7 +859,6 @@
             loadSettingsFromSession();
             // Приховуємо елементи керування на початку
             document.getElementById('sentenceControls').style.display = 'none';
-            document.getElementById('restartButton').style.display = 'none';
         });
 
         // Обробник кнопки початку навчання
