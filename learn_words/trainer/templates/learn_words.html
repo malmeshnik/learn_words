@@ -217,11 +217,19 @@
 
     /* Кнопки керування реченнями */
     .sentence-controls {
-        display: none;
+        display: flex;
         justify-content: center;
         gap: var(--spacing-md);
         flex-wrap: wrap;
         margin-bottom: var(--spacing-xl);
+    }
+
+    .controls {
+        display: flex;
+        gap: var(--spacing-md);
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
     }
 
     .sentence-controls button {
@@ -299,6 +307,7 @@
         }
 
         .controls {
+            width: 100%;
             flex-direction: row;
         }
     }
@@ -626,6 +635,54 @@
             playingWords();
         });
 
+        document.getElementById('prevWord').addEventListener('click', async () => {
+            // Зупиняємо поточний відтворюваний звук
+            stopCurrentAudio();
+            stopCurrentTranslation = true;
+            
+            // Якщо є запущений цикл відтворення, потрібно його перервати
+            if (isContinuingPlayback) {
+                isContinuingPlayback = false;
+                // Даємо час зупинити всі поточні операції
+                await sleep(200);
+            }
+            
+            index--
+            if (index < 0) index = 0;
+            
+            // Запускаємо новий цикл для відтворення одного слова
+            playingWords();
+        });
+
+        document.getElementById('nextWord').addEventListener('click', async () => {
+            // Зупиняємо поточний відтворюваний звук
+            stopCurrentAudio();
+            stopCurrentTranslation = true;
+            
+            // Якщо є запущений цикл відтворення, потрібно його перервати
+            if (isContinuingPlayback) {
+                isContinuingPlayback = false;
+                // Даємо час зупинити всі поточні операції
+                await sleep(200);
+            }
+            
+            index++
+
+            if (index > words.length) {
+                document.getElementById("BackWordButton").style.display = 'none';
+                document.getElementById("backSentenceButton").style.display = 'inline-flex';
+                document.getElementById('prevSentence').style.display = 'flex';
+                document.getElementById('nextSentence').style.display = 'flex';
+                document.getElementById('prevWord').style.display = 'none';
+                document.getElementById('nextWord').style.display = 'none';
+
+                PlayingSentences();
+            }
+            
+            // Запускаємо новий цикл для відтворення одного слова
+            playingWords();
+        });
+
         // Обробник кнопки повернення до речення
         document.getElementById('backSentenceButton').addEventListener('click', async () => {
             // Зупиняємо поточний відтворюваний звук
@@ -639,6 +696,44 @@
                 await sleep(200);
             }
             
+            if (currentIndex < 0) currentIndex = 0;
+            
+            // Потім запускаємо продовження відтворення
+            PlayingSentences();
+        });
+
+        document.getElementById('prevSentence').addEventListener('click', async () => {
+            // Зупиняємо поточний відтворюваний звук
+            stopCurrentAudio();
+            stopCurrentTranslation = true;
+            
+            // Якщо є запущений цикл відтворення, потрібно його перервати
+            if (isContinuingPlayback) {
+                isContinuingPlayback = false;
+                // Даємо час зупинити всі поточні операції
+                await sleep(200);
+            }
+            
+            currentIndex--
+            if (currentIndex < 0) currentIndex = 0;
+            
+            // Потім запускаємо продовження відтворення
+            PlayingSentences();
+        });
+
+        document.getElementById('nextSentence').addEventListener('click', async () => {
+            // Зупиняємо поточний відтворюваний звук
+            stopCurrentAudio();
+            stopCurrentTranslation = true;
+            
+            // Якщо є запущений цикл відтворення, потрібно його перервати
+            if (isContinuingPlayback) {
+                isContinuingPlayback = false;
+                // Даємо час зупинити всі поточні операції
+                await sleep(200);
+            }
+            
+            currentIndex++
             if (currentIndex < 0) currentIndex = 0;
             
             // Потім запускаємо продовження відтворення
@@ -698,9 +793,17 @@
             
             isContinuingPlayback = false;
             
-            {% comment %} if (index == words.length) {
+            if (index == words.length) {
+                document.getElementById("BackWordButton").style.display = 'none';
+                document.getElementById("backSentenceButton").style.display = 'inline-flex';
+                document.getElementById('prevSentence').style.display = 'flex';
+                document.getElementById('nextSentence').style.display = 'flex';
+                document.getElementById('prevWord').style.display = 'none';
+                document.getElementById('nextWord').style.display = 'none';
+
                 PlayingSentences();
-            } {% endcomment %}
+            
+            }
         }
 
         // Збереження налаштувань користувача на сервері
@@ -749,7 +852,6 @@
             adjustSentencesArray();
 
             for (let i = 0; i < settings.lessonRepeatCount; i++) {
-                console.log(`=== Повторення №${i + 1} ===`);
                 currentIndex = 0;
                 index = 0;
 
@@ -765,13 +867,15 @@
                 if (enableSentenceAudio) {
                     document.getElementById("BackWordButton").style.display = 'none';
                     document.getElementById("backSentenceButton").style.display = 'inline-flex';
+                    document.getElementById('prevSentence').style.display = 'flex';
+                    document.getElementById('nextSentence').style.display = 'flex';
+                    document.getElementById('prevWord').style.display = 'none';
+                    document.getElementById('nextWord').style.display = 'none';
 
                     await PlayingSentences(); // Очікуємо завершення речень
                 }
             }
 
-            // Показуємо завершення лише після всіх повторень
-            console.log('=== Завершено всі повторення ===');
             document.getElementById('wordBox').textContent = "Готово! 🎉";
             document.getElementById('translationBox').textContent = "";
             document.getElementById('restartButton').style.display = 'flex';
