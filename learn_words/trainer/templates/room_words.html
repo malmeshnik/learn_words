@@ -45,9 +45,6 @@
 
     <main class="container">
         <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-sliders"></i> Налаштування відтворення</h3>
-            </div>
             <div class="card-body">
                 <div class="toggle-container">
                     <div class="mode-label">Режим відтворення:</div>
@@ -63,21 +60,18 @@
         </div>
 
         <div class="card word-section">
-            <div class="card-header">
-                <h2><i class="fas fa-list"></i> Доступні слова</h2>
-            </div>
             <div class="card-body">
                 <form id="wordSelectionForm">
                     {% csrf_token %}
                     
                     <!-- Кнопки управління -->
                     <div class="word-controls">
-                        <button type="button" onclick="toggleSelectAll()" class="secondary-btn">
-                            <i class="fas fa-check-double"></i> <span id="selectAllText">Вибрати все</span>
-                        </button>
                         <button type="button" onclick="addSelectedWords()" class="primary-btn">
                             <i class="fas fa-plus-circle"></i> Додати обрані до мого списку
                         </button>
+                        <button type="button" onclick="toggleSelectAll()" class="secondary-btn">
+                            <i class="fas fa-check-double"></i> <span id="selectAllText">Вибрати все</span>
+                        </button>              
                     </div>
 
                     <!-- Загальні слова кімнати -->

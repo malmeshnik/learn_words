@@ -35,14 +35,11 @@
     <div class="section-card"
         <ul class="room-list" id="roomList">
             {% for room in rooms %}
-            <li class="room-item">
-                <span>{{ room.name }}</span>
-                <div class="room-actions">
-                    <a href="{% url 'room_words' room.id %}">
-                        <i class="fa-sharp fa-regular fa-folder-open"></i>
-                    </a>
-                </div>
-            </li>
+            <a href="{% url 'room_words' room.id %}">
+                <li class="room-item">
+                    <span>{{ room.name }}</span>
+                </li>
+            </a>
             {% endfor %}
         </ul>
     {% endif %}
@@ -50,7 +47,9 @@
             {% if user_rooms %}
                 {% for room in user_rooms %}
                 <li class="room-item" data-room-id="{{ room.id }}">
-                    <span>{{ room.name }}</span>
+                    <a href="{% url 'user_room_words' room.id %}">
+                        <span>{{ room.name }}</span>
+                    </a>
                     <div class="room-actions">
                         <button class="edit-room" room-id="{{ room.id }}" room-name="{{ room.name }}">
                             <i class="fas fa-edit"></i>
@@ -58,9 +57,6 @@
                         <button class="delete-room" onclick="deleteRoom({{ room.id }})">
                             <i class="fas fa-trash"></i>
                         </button>
-                        <a href="{% url 'user_room_words' room.id %}">
-                            <i class="fa-sharp fa-regular fa-folder-open"></i>
-                        </a>
                     </div>
                 </li>
                 {% endfor %}

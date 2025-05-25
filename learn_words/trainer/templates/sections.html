@@ -38,34 +38,32 @@
     <div class="section-card">
         <ul class="room-list" id="roomList">
             {% for section in sections %}
-            <li class="room-item">
-                <span>{{ section.name }}</span>
-                <div class="room-actions">
-                    <a href="{% url 'chapters' section.id %}">
-                        <i class="fa-sharp fa-regular fa-folder-open"></i>
-                    </a>
-                </div>
-            </li>
+            <a href="{% url 'chapters' section.id %}">
+                <li class="room-item">
+                    <span>{{ section.name }}</span>
+                </li>
+            </a>
             {% endfor %}
         </ul>
     {% endif %}
         <ul class="room-list" id="roomUserList">
             {% if user_sections %}
                 {% for section in user_sections %}
-                <li class="room-item" data-room-id="{{ section.id }}">
-                    <span>{{ section.name }}</span>
-                    <div class="room-actions">
-                        <button class="icon-btn edit-room" room-id="{{ section.id }}" room-name="{{ section.name }}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="icon-btn delete-room" onclick="deleteRoom({{ section.id }})">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <li class="room-item" data-room-id="{{ section.id }}">
                         <a href="{% url 'chapters' section.id %}">
-                            <i class="fa-sharp fa-regular fa-folder-open"></i>
+                            <span>
+                                    {{ section.name }}
+                            </span>
                         </a>
-                    </div>
-                </li>
+                        <div class="room-actions">
+                            <button class="icon-btn edit-room" room-id="{{ section.id }}" room-name="{{ section.name }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="icon-btn delete-room" onclick="deleteRoom({{ section.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </li>
                 {% endfor %}
             {% else %}
                 <div class="empty-state">
