@@ -556,11 +556,12 @@ def add_word_to_category(request):
         word_text = data.get("word")
         category_id = data.get("category_id")
         model_name = f"N{category_id}"
+        word_text = get_translate_to_en(word_text)
 
         try:
             Model = apps.get_model("trainer", model_name)
             new_word = Model.objects.create(word=word_text, user=request.user)
-            return JsonResponse({"success": True, "word_id": new_word.id})
+            return JsonResponse({"success": True, "word_id": new_word.id, "word": word_text})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
