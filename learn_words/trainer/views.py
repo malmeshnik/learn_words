@@ -1,174 +1,183 @@
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views import View
-from django.utils.translation import gettext as _
-from django.shortcuts import get_object_or_404, render, redirect
 import json
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
-from django.contrib import messages
-from django.apps import apps
-from gtts import gTTS
-from pathlib import Path
-import requests
 import random
 import re
 from itertools import product
+from pathlib import Path
 
-from .models import (Room, 
-                     Word,
-                     UserSettings,
-                     SentenceTemplate,
-                     SentencesTranslate,
-                     Section,
-                     Chapter,
-                     N1,
-                     N2,
-                     N3,
-                     N4,
-                     N5,
-                     N6,
-                     N7,
-                     N8,
-                     N9,
-                     N10)
+import requests
+from django.apps import apps
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from gtts import gTTS
 
-@login_required(login_url='/login/')
+from .models import (N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, Chapter, Room,
+                     Section, SentencesTranslate, SentenceTemplate,
+                     UserSettings, Word)
+
+
+@login_required(login_url="/login/")
 def chapter(request, section_id):
     section = get_object_or_404(Section, id=section_id)
     chapters = Chapter.objects.filter(section=section, user__isnull=True)
     user_chapters = Chapter.objects.filter(section=section, user=request.user)
 
-    return render(request,
-                  'chapters.html',
-                  context={
-                      'chapters': chapters,
-                      'user_chapters': user_chapters,
-                      'section_id': section.id
-                  })
+    return render(
+        request,
+        "chapters.html",
+        context={
+            "chapters": chapters,
+            "user_chapters": user_chapters,
+            "section_id": section.id,
+        },
+    )
 
-@login_required(login_url='/login/')
+
+@login_required(login_url="/login/")
 def section(request):
     sections = Section.objects.filter(user__isnull=True)
     user_sections = Section.objects.filter(user=request.user)
 
-    return render(request,
-                  'sections.html',
-                  context={
-                      'sections': sections,
-                      'user_sections': user_sections
-                  })
+    return render(
+        request,
+        "sections.html",
+        context={"sections": sections, "user_sections": user_sections},
+    )
 
-@login_required(login_url='/login/')
+
+@login_required(login_url="/login/")
 def room(request, chapter_id):
     chapter = get_object_or_404(Chapter, id=chapter_id)
-    rooms = Room.objects.filter(chapter = chapter, user__isnull=True)
-    user_rooms = Room.objects.filter(chapter = chapter, user=request.user)
-    print(f'user_rooms: {user_rooms}')
-    return render(request, 'rooms.html', context={
-        'rooms': rooms,
-        'user_rooms': user_rooms,
-        'chapter_id': chapter_id,
-        })
+    rooms = Room.objects.filter(chapter=chapter, user__isnull=True)
+    user_rooms = Room.objects.filter(chapter=chapter, user=request.user)
+    print(f"user_rooms: {user_rooms}")
+    return render(
+        request,
+        "rooms.html",
+        context={
+            "rooms": rooms,
+            "user_rooms": user_rooms,
+            "chapter_id": chapter_id,
+        },
+    )
+
 
 def login_view(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+    if request.method == "POST":
+        username = request.POST["username"]
+        password = request.POST["password"]
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             login(request, user)
-            return redirect('/')
+            return redirect("/")
         else:
-            messages.error(request, 'Невірний логін або пароль')
-        
-    return render(request, 'login.html')
-    
+            messages.error(request, "Невірний логін або пароль")
+
+    return render(request, "login.html")
+
+
 def register_view(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+    if request.method == "POST":
+        username = request.POST["username"]
+        password = request.POST["password"]
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'Користувач з таким логіном вже існує')
+            messages.error(request, "Користувач з таким логіном вже існує")
         else:
             user = User.objects.create_user(username=username, password=password)
             login(request, user)
-            return redirect('/')
-        
-    return render(request, 'register.html')
+            return redirect("/")
+
+    return render(request, "register.html")
+
 
 def logout_view(request):
     logout(request)
-    return redirect('login')
+    return redirect("login")
+
 
 @csrf_exempt
 def add_room(request):
     if request.method == "POST":
-        room_name = request.POST.get('name')
-        chapter_id = request.POST.get('chapter_id')
+        room_name = request.POST.get("name")
+        chapter_id = request.POST.get("chapter_id")
         exist_room = Room.objects.filter(name=room_name, user=request.user).exists()
         chapter = get_object_or_404(Chapter, id=chapter_id)
-        
+
         if exist_room:
             return JsonResponse({"success": False, "error": "Room is required"})
         else:
-            user_room = Room.objects.create(name=room_name, chapter = chapter, user=request.user)
-            return JsonResponse({"success": True, 'room_name': user_room.name, "room_id": user_room.id})
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+            user_room = Room.objects.create(
+                name=room_name, chapter=chapter, user=request.user
+            )
+            return JsonResponse(
+                {"success": True, "room_name": user_room.name, "room_id": user_room.id}
+            )
+    return JsonResponse(
+        {"success": False, "error": "Invalid request method"}, status=405
+    )
+
 
 @login_required
 def room_words(request, room_id):
     room = get_object_or_404(Room, id=room_id)
 
-    words = Word.objects.filter(room=room, user__isnull = True)
+    words = Word.objects.filter(room=room, user__isnull=True)
 
     user_words = Word.objects.filter(room=room, user=request.user)
 
-    return render(request, 
-                  'room_words.html', 
-                  {
-                      'room': room, 
-                      'words': words,
-                      'user_words': user_words})
+    return render(
+        request,
+        "room_words.html",
+        {"room": room, "words": words, "user_words": user_words},
+    )
+
 
 @login_required
 def user_chapter_words(request, chapter_id):
     chapter = get_object_or_404(Chapter, id=chapter_id)
-    admin_chapter = Chapter.objects.filter(room=chapter_id, user__isnull = True)
+    admin_chapter = Chapter.objects.filter(room=chapter_id, user__isnull=True)
     user_chapter = Chapter.objects.filter(room=chapter_id, user=request.user)
 
-    return render(request,
-                  'room_words.html',
-                  {
-                      'room': chapter,
-                      'admin_chapter': admin_chapter,
-                      'user_chapter': user_chapter
-                  })
+    return render(
+        request,
+        "room_words.html",
+        {"room": chapter, "admin_chapter": admin_chapter, "user_chapter": user_chapter},
+    )
+
 
 @login_required
 def user_room_words(request, room_id):
     room = get_object_or_404(Room, id=room_id)
-    admin_words = Word.objects.filter(room=room_id, user__isnull = True)
+    admin_words = Word.objects.filter(room=room_id, user__isnull=True)
     user_words = Word.objects.filter(room=room_id, user=request.user)
 
-    return render(request,
-                  'room_words.html',
-                  {
-                      'room': room,
-                      'words': admin_words,
-                      'user_words': user_words
-                  })
+    return render(
+        request,
+        "room_words.html",
+        {"room": room, "words": admin_words, "user_words": user_words},
+    )
+
 
 @login_required
-@csrf_exempt 
+@csrf_exempt
 def add_word(request):
-    if request.method == 'POST':
-        room_id = request.POST.get('room_id')
-        word_en = request.POST.get('en')  
-        word_ru = get_translate(word_en)
-        
+    if request.method == "POST":
+        room_id = request.POST.get("room_id")
+        word_en = request.POST.get("en")
+        word_ru = request.POST.get('ru')
+
+        if word_en and not word_ru:
+            word_ru = get_translate(word_en)
+        elif word_ru and not word_en:
+            word_en = get_translate_to_en(word_ru)
+
         room = get_object_or_404(Room, id=room_id)
 
         exist_word = Word.objects.filter(room=room, en=word_en).exists()
@@ -176,348 +185,394 @@ def add_word(request):
         if exist_word:
             return JsonResponse({"success": False, "error": "Word is required"})
         else:
-            word = Word.objects.create(room=room, en=word_en, ru=word_ru, user=request.user)
-            return JsonResponse({
-                "success": True,
-                "id": word.id,
-                "en": word.en,
-                "ru": word.ru 
-            })
+            word = Word.objects.create(
+                room=room, en=word_en, ru=word_ru, user=request.user
+            )
+            return JsonResponse(
+                {"success": True, "id": word.id, "en": word.en, "ru": word.ru}
+            )
+
 
 @login_required
 def delete_room_word(request):
-    body = request.body.decode('utf-8')
+    body = request.body.decode("utf-8")
     data = json.loads(body)
-    word_id = data.get('wordId')
+    word_id = data.get("wordId")
     print(word_id)
 
     Word.objects.filter(id=word_id).delete()
 
-    return JsonResponse({'success': True})
+    return JsonResponse({"success": True})
+
 
 @login_required
 def delete_room(request):
-    body = request.body.decode('utf-8')
+    body = request.body.decode("utf-8")
     data = json.loads(body)
-    word_id = data.get('room_id')
+    word_id = data.get("room_id")
     print(word_id)
 
     Room.objects.filter(id=word_id).delete()
 
-    return JsonResponse({'success': True})
+    return JsonResponse({"success": True})
+
 
 @csrf_exempt
 @login_required
 def edit_room_word(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            word_id = data.get('wordId')
-            en = data.get('en')
+            word_id = data.get("wordId")
+            en = data.get("en")
             ru = get_translate(en)
 
             if not word_id or not en:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            word = Word.objects.get(id=word_id, user=request.user)  # якщо є прив'язка до користувача
+            word = Word.objects.get(
+                id=word_id, user=request.user
+            )  # якщо є прив'язка до користувача
             word.en = en
             word.ru = ru
             word.save()
 
-            return JsonResponse({
-                'success': True,
-                'word': {
-                    'id': word.id,
-                    'en': word.en,
-                    'ru': word.ru,
+            return JsonResponse(
+                {
+                    "success": True,
+                    "word": {
+                        "id": word.id,
+                        "en": word.en,
+                        "ru": word.ru,
+                    },
                 }
-            })
-        
+            )
+
         except Word.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Слово не знайдено'})
+            return JsonResponse({"success": False, "error": "Слово не знайдено"})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
-    
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
+
+
 def edit_room(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            room_id = data.get('room_id')
-            new_name = data.get('new_name')
+            room_id = data.get("room_id")
+            new_name = data.get("new_name")
 
             if not room_id or not new_name:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            room = Room.objects.get(id=room_id, user=request.user)  # якщо є прив'язка до користувача
+            room = Room.objects.get(
+                id=room_id, user=request.user
+            )  # якщо є прив'язка до користувача
             room.name = new_name
             room.save()
 
-            return JsonResponse({
-                'success': True,
-                'room': {
-                    'id': room.id,
-                    'name': room.name,
+            return JsonResponse(
+                {
+                    "success": True,
+                    "room": {
+                        "id": room.id,
+                        "name": room.name,
+                    },
                 }
-            })
-        
+            )
+
         except Room.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Кімната не знайдена'})
+            return JsonResponse({"success": False, "error": "Кімната не знайдена"})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
+
 
 @login_required
 def edit_chapter(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            chapter_id = data.get('chapter_id')
-            new_name = data.get('new_name')
+            chapter_id = data.get("chapter_id")
+            new_name = data.get("new_name")
 
             if not chapter_id or not new_name:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            chapter = Chapter.objects.get(id=chapter_id, user=request.user)  # якщо є прив'язка до користувача
+            chapter = Chapter.objects.get(
+                id=chapter_id, user=request.user
+            )  # якщо є прив'язка до користувача
             chapter.name = new_name
             chapter.save()
 
-            return JsonResponse({
-                'success': True,
-                'chapter': {
-                    'id': chapter.id,
-                    'name': chapter.name,
+            return JsonResponse(
+                {
+                    "success": True,
+                    "chapter": {
+                        "id": chapter.id,
+                        "name": chapter.name,
+                    },
                 }
-            })
-        
+            )
+
         except Chapter.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+            return JsonResponse({"success": False, "error": "Розділ не знайдено"})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
-    
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
+
+
 def delete_chapter(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            chapter_id = data.get('chapter_id')
+            chapter_id = data.get("chapter_id")
 
             if not chapter_id:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            chapter = Chapter.objects.get(id=chapter_id, user=request.user)  # якщо є прив'язка до користувача
+            chapter = Chapter.objects.get(
+                id=chapter_id, user=request.user
+            )  # якщо є прив'язка до користувача
             chapter.delete()
 
-            return JsonResponse({
-                'success': True,
-                'chapter_id': chapter_id,
-            })
-        
+            return JsonResponse(
+                {
+                    "success": True,
+                    "chapter_id": chapter_id,
+                }
+            )
+
         except Chapter.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+            return JsonResponse({"success": False, "error": "Розділ не знайдено"})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
+
 
 def add_section(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            section_name = request.POST.get('name')
+            section_name = request.POST.get("name")
 
             if not section_name:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            section = Section.objects.create(name=section_name, user=request.user)  # якщо є прив'язка до користувача
+            section = Section.objects.create(
+                name=section_name, user=request.user
+            )  # якщо є прив'язка до користувача
 
-            return JsonResponse({
-                'success': True,
-                'section': {
-                    'id': section.id,
-                    'name': section.name,
+            return JsonResponse(
+                {
+                    "success": True,
+                    "section": {
+                        "id": section.id,
+                        "name": section.name,
+                    },
                 }
-            })
-        
+            )
+
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
+
 
 @login_required
 def edit_section(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            section_id = data.get('section_id')
-            new_name = data.get('new_name')
+            section_id = data.get("section_id")
+            new_name = data.get("new_name")
 
             if not section_id or not new_name:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            section = Section.objects.get(id=section_id, user=request.user)  # якщо є прив'язка до користувача
+            section = Section.objects.get(
+                id=section_id, user=request.user
+            )  # якщо є прив'язка до користувача
             section.name = new_name
             section.save()
 
-            return JsonResponse({
-                'success': True,
-                'section': {
-                    'id': section.id,
-                    'name': section.name,
+            return JsonResponse(
+                {
+                    "success": True,
+                    "section": {
+                        "id": section.id,
+                        "name": section.name,
+                    },
                 }
-            })
-        
+            )
+
         except Section.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+            return JsonResponse({"success": False, "error": "Розділ не знайдено"})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
-    
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
+
+
 def delete_section(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            section_id = data.get('section_id')
+            section_id = data.get("section_id")
 
             if not section_id:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            section = Section.objects.get(id=section_id, user=request.user)  # якщо є прив'язка до користувача
+            section = Section.objects.get(
+                id=section_id, user=request.user
+            )  # якщо є прив'язка до користувача
             section.delete()
 
-            return JsonResponse({
-                'success': True,
-                'section_id': section_id,
-            })
-        
+            return JsonResponse(
+                {
+                    "success": True,
+                    "section_id": section_id,
+                }
+            )
+
         except Section.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Розділ не знайдено'})
+            return JsonResponse({"success": False, "error": "Розділ не знайдено"})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
 
 
 def add_chapter(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            chapter_name = request.POST.get('name')
-            section_id = request.POST.get('section_id')
+            chapter_name = request.POST.get("name")
+            section_id = request.POST.get("section_id")
             section = get_object_or_404(Section, id=section_id)
 
             print(chapter_name)
 
             if not chapter_name:
-                return JsonResponse({'success': False, 'error': 'Не всі дані передані'})
+                return JsonResponse({"success": False, "error": "Не всі дані передані"})
 
-            chapter = Chapter.objects.create(name=chapter_name, 
-                                             user=request.user,
-                                             section=section)  # якщо є прив'язка до користувача
+            chapter = Chapter.objects.create(
+                name=chapter_name, user=request.user, section=section
+            )  # якщо є прив'язка до користувача
 
-            return JsonResponse({
-                'success': True,
-                'chapter': {
-                    'id': chapter.id,
-                    'name': chapter.name,
+            return JsonResponse(
+                {
+                    "success": True,
+                    "chapter": {
+                        "id": chapter.id,
+                        "name": chapter.name,
+                    },
                 }
-            })
-        
+            )
+
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Тільки POST запити дозволені'})
+        return JsonResponse({"success": False, "error": "Тільки POST запити дозволені"})
+
 
 def get_category_model(category_id):
     from django.apps import apps
+
     try:
-        return apps.get_model('trainer', f'N{category_id}')
+        return apps.get_model("trainer", f"N{category_id}")
     except LookupError:
         return None
-        
+
+
 @csrf_exempt
 @login_required
 def edit_word_simple(request):
     data = json.loads(request.body)
-    word_id = data.get('word_id')
-    category_id = data.get('category_id')
-    new_word = data.get('word')
+    word_id = data.get("word_id")
+    category_id = data.get("category_id")
+    new_word = data.get("word")
 
     Model = get_category_model(category_id)
     if not Model:
-        return JsonResponse({'success': False, 'error': 'Модель не знайдено'})
+        return JsonResponse({"success": False, "error": "Модель не знайдено"})
 
     try:
         word = Model.objects.get(id=word_id)
         word.word = new_word
         word.save()
-        return JsonResponse({'success': True})
+        return JsonResponse({"success": True})
     except Model.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Слово не знайдено'})
+        return JsonResponse({"success": False, "error": "Слово не знайдено"})
+
 
 @csrf_exempt
 @login_required
 def delete_word_simple(request):
     data = json.loads(request.body)
-    word_id = data.get('word_id')
-    category_id = data.get('category_id')
+    word_id = data.get("word_id")
+    category_id = data.get("category_id")
 
     print(category_id)
 
     Model = get_category_model(category_id)
     if not Model:
-        return JsonResponse({'success': False, 'error': 'Модель не знайдено'})
+        return JsonResponse({"success": False, "error": "Модель не знайдено"})
 
     try:
         word = Model.objects.get(id=word_id)
         print(word)
         word.delete()
-        return JsonResponse({'success': True})
+        return JsonResponse({"success": True})
     except Model.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Слово не знайдено'})
+        return JsonResponse({"success": False, "error": "Слово не знайдено"})
 
 
 @csrf_exempt
 def add_selected_words(request):
     if request.method == "POST":
-        body = request.body.decode('utf-8')
+        body = request.body.decode("utf-8")
         print(body)
         data = json.loads(body)
-        word_ids = data.get('word_ids', [])
-        is_random = data.get('is_random')
+        word_ids = data.get("word_ids", [])
+        is_random = data.get("is_random")
 
-        request.session['selected_words'] = word_ids
-        request.session['is_random'] = is_random
+        request.session["selected_words"] = word_ids
+        request.session["is_random"] = is_random
         request.session.modified = True
 
         return JsonResponse({"success": True}, status=200)
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+    return JsonResponse(
+        {"success": False, "error": "Invalid request method"}, status=405
+    )
+
 
 @csrf_exempt
 def add_word_to_category(request):
     if request.method == "POST":
         data = json.loads(request.body)
-        word_text = data.get('word')
-        category_id = data.get('category_id')
+        word_text = data.get("word")
+        category_id = data.get("category_id")
         model_name = f"N{category_id}"
 
         try:
-            Model = apps.get_model('trainer', model_name)
+            Model = apps.get_model("trainer", model_name)
             new_word = Model.objects.create(word=word_text, user=request.user)
-            return JsonResponse({"success": True, 'word_id': new_word.id})
+            return JsonResponse({"success": True, "word_id": new_word.id})
         except Exception as e:
-            return JsonResponse({"success": False, 'error': str(e)})
-        
-    return JsonResponse({'success': False, "error": 'Invalid method'})
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Invalid method"})
+
 
 def learn_words(request):
-    selected_word_ids = request.session.get('selected_words', [])
-    random_words = request.session.get('is_random')
-    random_order = request.session.get('is_random_order')
+    selected_word_ids = request.session.get("selected_words", [])
+    random_words = request.session.get("is_random")
+    random_order = request.session.get("is_random_order")
     print(f"random_order: {random_order}")
-    selected_words_by_category = request.session.get('selected_categories', {})
+    selected_words_by_category = request.session.get("selected_categories", {})
     user_settings = UserSettings.objects.filter(user=request.user).first()
 
     words = Word.objects.filter(id__in=selected_word_ids)
@@ -526,19 +581,22 @@ def learn_words(request):
     if not user_settings:
         user_settings = save_user_settings(request)
         user_settings = UserSettings.objects.filter(user=request.user).first()
-    
+
     # Загрузка слов по категориям
     word_dict = {}
     for category_id, ids in selected_words_by_category.items():
         model_name = f"N{category_id}"
         try:
-            Model = apps.get_model(app_label='trainer', model_name=model_name)
+            Model = apps.get_model(app_label="trainer", model_name=model_name)
             word_dict[category_id] = list(Model.objects.filter(id__in=ids))
             # Если режим рандомный, перемешиваем списки слов
             if random_order[category_id]:
                 import random
+
                 random.shuffle(word_dict[category_id])
-                print(f"Слова в категорії {category_id} перемішані: {word_dict[category_id]}")
+                print(
+                    f"Слова в категорії {category_id} перемішані: {word_dict[category_id]}"
+                )
         except LookupError:
             word_dict[category_id] = []
 
@@ -552,21 +610,24 @@ def learn_words(request):
     word_list = list(words)
     if random_words:
         import random
+
         random.shuffle(word_list)
         print("Слова перемішані")
-    
+
     for word in word_list:
-        generate_mp3_if_needed(word.id, word.en, 'en', 'en')
-        generate_mp3_if_needed(word.id, word.ru, 'ru', 'ru')
-        result_words.append({
-            'id': word.id,
-            'en': word.en,
-            'ru': word.ru,
-        })
+        generate_mp3_if_needed(word.id, word.en, "en", "en")
+        generate_mp3_if_needed(word.id, word.ru, "ru", "ru")
+        result_words.append(
+            {
+                "id": word.id,
+                "en": word.en,
+                "ru": word.ru,
+            }
+        )
 
         for sentence in sentences:
             template = sentence.template
-            placeholders = [ph[1:-1] for ph in re.findall(r'\{[^{}]+\}', template)]
+            placeholders = [ph[1:-1] for ph in re.findall(r"\{[^{}]+\}", template)]
 
             # Проверяем, есть ли все выбранные категории в шаблоне
             required_placeholders = list(selected_words_by_category.keys())
@@ -575,7 +636,7 @@ def learn_words(request):
                 continue
 
             # Все другие плейсхолдеры, кроме "word"
-            other_placeholders = [ph for ph in placeholders if ph != 'word']
+            other_placeholders = [ph for ph in placeholders if ph != "word"]
 
             # Подбираем варианты замены для каждого плейсхолдера
             replacement_lists = []
@@ -591,35 +652,44 @@ def learn_words(request):
                 continue
 
             for combo in product(*replacement_lists):
-                replaced_en = template.replace('{word}', word.en)
+                replaced_en = template.replace("{word}", word.en)
                 for i, ph in enumerate(other_placeholders):
-                    replaced_en = replaced_en.replace(f'{{{ph}}}', combo[i].word)
+                    replaced_en = replaced_en.replace(f"{{{ph}}}", combo[i].word)
 
-                if not re.search(r'\{[^{}]+\}', replaced_en):
-                    if replaced_en not in [s['template'] for s in result_sentences]:
+                if not re.search(r"\{[^{}]+\}", replaced_en):
+                    if replaced_en not in [s["template"] for s in result_sentences]:
                         text_ru = get_translate(replaced_en)
-                        path_to_en = generate_sentence_mp3(replaced_en, 'en', sentence.id)
-                        path_to_ru = generate_sentence_mp3(text_ru, 'ru', sentence.id)
+                        path_to_en = generate_sentence_mp3(
+                            replaced_en, "en", sentence.id
+                        )
+                        path_to_ru = generate_sentence_mp3(text_ru, "ru", sentence.id)
 
-                        result_sentences.append({
-                            'id': sentence.id,
-                            'template': replaced_en,
-                            'translate': text_ru,
-                            'path_to_en': path_to_en,
-                            'path_to_ru': path_to_ru
-                        })
+                        result_sentences.append(
+                            {
+                                "id": sentence.id,
+                                "template": replaced_en,
+                                "translate": text_ru,
+                                "path_to_en": path_to_en,
+                                "path_to_ru": path_to_ru,
+                            }
+                        )
 
     print(f"Згенеровано {len(result_sentences)} речень для {len(result_words)} слів")
 
-    return render(request, 'learn_words.html', {
-        'words': result_words,
-        'sentences': result_sentences,
-        'user_settings': user_settings,
-        # 'is_random': is_random,  # Передаем текущий режим в шаблон
-    })
+    return render(
+        request,
+        "learn_words.html",
+        {
+            "words": result_words,
+            "sentences": result_sentences,
+            "user_settings": user_settings,
+            # 'is_random': is_random,  # Передаем текущий режим в шаблон
+        },
+    )
+
 
 def save_user_settings(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         # Перетворюємо байтовий потік в JSON
         try:
             data = json.loads(request.body)
@@ -627,15 +697,17 @@ def save_user_settings(request):
             data = {}
 
         # Отримуємо налаштування користувача
-        user_settings = data.get('user_settings', {})
+        user_settings = data.get("user_settings", {})
         print(user_settings)
 
-        repeat_count = user_settings.get('repetitions', 1)
-        pause_between = float(user_settings.get('pauseBetween', 1000)) / 1000
-        delay_before_translation = float(user_settings.get('delayBeforeTranslation', 500)) / 1000
-        hide_translation = user_settings.get('hide_translation', False)
-        playback_speed = float(user_settings.get('playbackSpeed', 1))
-        lesson_repeat_count = user_settings.get('lessonRepeatCount', 1)
+        repeat_count = user_settings.get("repetitions", 1)
+        pause_between = float(user_settings.get("pauseBetween", 1000)) / 1000
+        delay_before_translation = (
+            float(user_settings.get("delayBeforeTranslation", 500)) / 1000
+        )
+        hide_translation = user_settings.get("hide_translation", False)
+        playback_speed = float(user_settings.get("playbackSpeed", 1))
+        lesson_repeat_count = user_settings.get("lessonRepeatCount", 1)
 
         print(repeat_count, pause_between, delay_before_translation, hide_translation)
 
@@ -643,49 +715,31 @@ def save_user_settings(request):
         user_settings_instance, created = UserSettings.objects.update_or_create(
             user=request.user,
             defaults={
-                'repeat_count': repeat_count,
-                'pause_between': pause_between,
-                'delay_before_translation': delay_before_translation,
-                'hide_translation': hide_translation,
-                'playback_speed': playback_speed,
-                'lesson_repeat_count': lesson_repeat_count
-            }
+                "repeat_count": repeat_count,
+                "pause_between": pause_between,
+                "delay_before_translation": delay_before_translation,
+                "hide_translation": hide_translation,
+                "playback_speed": playback_speed,
+                "lesson_repeat_count": lesson_repeat_count,
+            },
         )
 
-        return JsonResponse({'success': True})
+        return JsonResponse({"success": True})
 
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+    return JsonResponse({"error": "Invalid request method"}, status=400)
+
 
 def choose_category(request):
     categories = [
-        {
-            "id": 1,
-            "name": "Займенник",
-            "words": N1.objects.filter(user = request.user) 
-        },
-        {
-            "id": 2,
-            "name": "Глагол",
-            "words": N2.objects.filter(user = request.user)
-        },
-        {
-            "id": 3,
-            "name": "Где",
-            "words": N3.objects.filter(user = request.user)  
-        },
-        {
-            "id": 4,
-            "name": "Когда",
-            "words": N4.objects.filter(user = request.user)  
-        },
-        {
-            "id": 5,
-            "name": "5",
-            "words": N5.objects.filter(user = request.user)  
-        }
+        {"id": 1, "name": "Займенник", "words": N1.objects.filter(user=request.user)},
+        {"id": 2, "name": "Глагол", "words": N2.objects.filter(user=request.user)},
+        {"id": 3, "name": "Где", "words": N3.objects.filter(user=request.user)},
+        {"id": 4, "name": "Когда", "words": N4.objects.filter(user=request.user)},
+        {"id": 5, "name": "5", "words": N5.objects.filter(user=request.user)},
     ]
 
     return render(request, "choose_categories.html", {"categories": categories})
+
 
 @csrf_exempt
 def add_selected_categories(request):
@@ -702,7 +756,6 @@ def add_selected_categories(request):
             # Збереження в сесію або обробка для БД
             request.session["selected_categories"] = words_by_category
             request.session["is_random_order"] = random_order
-            
 
             return JsonResponse({"success": True})
         except Exception as e:
@@ -710,16 +763,20 @@ def add_selected_categories(request):
 
     return JsonResponse({"success": False, "error": "Invalid request"})
 
+
 def generate_mp3_if_needed(word_id, text, lang, subfolder):
-    filename = f'media/audio/{subfolder}/{word_id}.mp3'
+    filename = f"media/audio/{subfolder}/{word_id}.mp3"
     path = Path(filename)
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         tts = gTTS(text=text, lang=lang)
         tts.save(str(path))
 
+
 def generate_sentence_mp3(sentence, lang, sentence_id):
-    file_path = f"media/audio/sentence/{lang}/sentence_{sentence_id}_{sentence}_{lang}.mp3"
+    file_path = (
+        f"media/audio/sentence/{lang}/sentence_{sentence_id}_{sentence}_{lang}.mp3"
+    )
     path = Path(file_path)
 
     if not path.exists():
@@ -729,30 +786,44 @@ def generate_sentence_mp3(sentence, lang, sentence_id):
 
     return file_path
 
+
 def get_translate(text: str) -> str:
     translate = SentencesTranslate.objects.filter(sentence_en=text).first()
-    
+
     if translate:
         return translate.sentence_ru
-    
+
     url = "https://google-translate-official.p.rapidapi.com/translate"
 
-    payload = {
-        "texte": text,
-        "source": "auto",
-        "to_lang": "ru"
-    }
+    payload = {"texte": text, "source": "auto", "to_lang": "ru"}
     headers = {
         "x-rapidapi-key": "99220db1a8mshe97ffbd5e65a6cbp14cfeejsn6155e9e7d15b",
         "x-rapidapi-host": "google-translate-official.p.rapidapi.com",
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Content-Type": "application/x-www-form-urlencoded",
     }
 
     response = requests.post(url, data=payload, headers=headers)
 
-    translate = response.json().get('translation_data').get('translation')
+    translate = response.json().get("translation_data").get("translation")
 
     SentencesTranslate.objects.create(sentence_en=text, sentence_ru=translate)
 
     return translate
 
+def get_translate_to_en(text: str) -> str:
+    url = "https://google-translate-official.p.rapidapi.com/translate"
+
+    payload = {"texte": text, "source": "auto", "to_lang": "en"}
+    headers = {
+        "x-rapidapi-key": "99220db1a8mshe97ffbd5e65a6cbp14cfeejsn6155e9e7d15b",
+        "x-rapidapi-host": "google-translate-official.p.rapidapi.com",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    response = requests.post(url, data=payload, headers=headers)
+
+    translate = response.json().get("translation_data").get("translation")
+
+    SentencesTranslate.objects.create(sentence_en=text, sentence_ru=translate)
+
+    return translate

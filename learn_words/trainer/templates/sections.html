@@ -248,7 +248,9 @@
                     newRoom.classList.add('fade-in'); // Додаємо анімацію появи
                     
                     newRoom.innerHTML = `
-                        <span>${response.section.name}</span>
+                        <a href="chapters/${response.section.id}">
+                            <span>${response.section.name}</span>
+                        </a>
                         <div class="room-actions">
                             <button class="edit-room" room-id="${response.section.id}" room-name="${response.section.name}">
                                 <i class="fas fa-edit"></i>
@@ -256,9 +258,6 @@
                             <button class="delete-room" onclick="deleteRoom(${response.section.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            <a href="chapters/${response.section.id}">
-                                <i class="fas fa-eye"></i>
-                            </a>
                         </div>
                     `;
                     

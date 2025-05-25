@@ -233,7 +233,9 @@
                     newRoom.classList.add('fade-in');
 
                     newRoom.innerHTML = `
-                        <span>${response.chapter.name}</span>
+                        <a href="/rooms/${response.chapter.id}">
+                            <span>${response.chapter.name}</span>
+                        </a>
                         <div class="room-actions">
                             <button class="edit-room" room-id="${response.chapter.id}" room-name="${response.chapter.name}">
                                 <i class="fas fa-edit"></i>
@@ -241,9 +243,6 @@
                             <button class="delete-room" onclick="deleteRoom(${response.chapter.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            <a href="chapters/${response.chapter.id}">
-                                <i class="fas fa-eye"></i>
-                            </a>
                         </div>
                     `;
                     

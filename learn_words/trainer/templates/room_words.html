@@ -136,12 +136,17 @@
                 <h3><i class="fas fa-plus"></i> Додати нове слово</h3>
             </div>
             <div class="card-body">
+                <span>Введіть слово англійською або ж російською для додавання</span>
                 <form id="addWordForm" class="add-word-form">
                     {% csrf_token %}
                     <div class="form-row">
                         <div class="input-group">
                             <label for="addWordEn">Слово англійською</label>
-                            <input type="text" id="addWordEn" placeholder="Введіть слово англійською" required>
+                            <input type="text" id="addWordEn" placeholder="Введіть слово англійською">
+                        </div>
+                        <div class="input-group">
+                            <label for="addWordRu">Слово російською</label>
+                            <input type="text" id="addWordRu" placeholder="Введіть слово російською">
                         </div>
                         <button type="button" class="primary-btn" onclick="submitNewWord()">
                             <i class="fas fa-plus"></i> Додати слово
@@ -181,9 +186,9 @@
         function submitNewWord() {
             var roomId = "{{ room.id }}";
             var wordEn = document.getElementById('addWordEn').value;
+            var wordRu = document.getElementById('addWordRu').value;
             var errorMessage = document.getElementById('wordErrorMessage');
 
-            if (wordEn.trim() !== '') {
                 var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 showSpinner();
 
@@ -222,6 +227,7 @@
                         wordList.appendChild(newLi);
 
                         document.getElementById('addWordEn').value = '';
+                        document.getElementById('addWordRu').value = '';
                         errorMessage.textContent = '';
                         
                         const messageEl = document.getElementById("message");
@@ -238,10 +244,8 @@
                 xhr.send('csrfmiddlewaretoken=' + encodeURIComponent(csrfToken) + 
                          '&room_id=' + encodeURIComponent(roomId) + 
                          '&room_name=' + encodeURIComponent("{{ room.name }}") +
-                         '&en=' + encodeURIComponent(wordEn));
-            } else {
-                errorMessage.textContent = 'Будь ласка, введіть слово!';
-            }
+                         '&en=' + encodeURIComponent(wordEn) + 
+                         '&ru=' + encodeURIComponent(wordRu));
         }
 
         function editWord(wordId, wordEn) {
