@@ -291,12 +291,15 @@
         }
 
         .sentence-controls {
-            flex-direction: column;
+            flex-direction: row;
         }
 
         .sentence-controls button {
-            width: 100%;
             margin-bottom: var(--spacing-sm);
+        }
+
+        .controls {
+            flex-direction: row;
         }
     }
 
@@ -382,8 +385,14 @@
         <div class="translation" id="translationBox"></div>
 
         <div class="sentence-controls" id="sentenceControls">
-            <button id="backSentenceButton">⏪ Повторити речення</button>
-            <button id="BackWordButton">⏪ Повторити слово</button>
+            <div class="controls">
+                <button id="prevSentence">⏪</button>
+                <button id="prevWord">⏪</button>
+                <button id="backSentenceButton">🔁 Повторити</button>
+                <button id="BackWordButton">🔁 Повторити</button>
+                <button id="nextSentence">⏩</button>
+                <button id="nextWord">⏩</button>
+            </div>
             <button id="showTranslation">🔍 Показати переклад</button>
             <button id="pauseBtnLabel" onclick="togglePause()">⏸️ Пауза</button>
         </div>
@@ -747,6 +756,8 @@
                 if (enableWordAudio) {
                     document.getElementById("backSentenceButton").style.display = 'none';
                     document.getElementById('BackWordButton').style.display = 'inline-flex';
+                    document.getElementById('prevSentence').style.display = 'none';
+                    document.getElementById('nextSentence').style.display = 'none';
 
                     await playingWords(); // Очікуємо завершення слів
                 }
