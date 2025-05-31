@@ -299,7 +299,7 @@
         }
 
         .sentence-controls {
-            flex-direction: row;
+            flex-direction: column;
         }
 
         .sentence-controls button {
@@ -426,6 +426,7 @@
         let isPlaying = false;
         let isContinuingPlayback = false;
         let stopCurrentTranslation = false;
+        let stopCurrentItem = false;
 
         const words = {{ words|safe }};
         let sentences = {{ sentences|safe }};
@@ -444,7 +445,8 @@
             let elapsed = 0;
             while (elapsed < duration) {
                 if (stopCurrentTranslation) {
-                    stopCurrentTranslation = false; // Скидаємо прапорець
+                    stopCurrentTranslation = false;
+                    stopCurrentItem = true; // Скидаємо прапорець
                     break; // Якщо пауза знята — виходимо
                 }
                 await sleep(checkInterval);
@@ -742,6 +744,13 @@
 
         // Функція для відтворення речень
         async function PlayingSentences() {
+            document.getElementById("BackWordButton").style.display = 'none';
+            document.getElementById("backSentenceButton").style.display = 'inline-flex';
+            document.getElementById('prevSentence').style.display = 'flex';
+            document.getElementById('nextSentence').style.display = 'flex';
+            document.getElementById('prevWord').style.display = 'none';
+            document.getElementById('nextWord').style.display = 'none';
+
             if (isContinuingPlayback) return;
             
             isContinuingPlayback = true;
@@ -773,6 +782,11 @@
 
         // Функція для відтворення слів
         async function playingWords() {
+            document.getElementById("backSentenceButton").style.display = 'none';
+            document.getElementById('BackWordButton').style.display = 'inline-flex';
+            document.getElementById('prevSentence').style.display = 'none';
+            document.getElementById('nextSentence').style.display = 'none';
+
             if (isContinuingPlayback) return;
             
             isContinuingPlayback = true;
@@ -860,6 +874,8 @@
                     document.getElementById('BackWordButton').style.display = 'inline-flex';
                     document.getElementById('prevSentence').style.display = 'none';
                     document.getElementById('nextSentence').style.display = 'none';
+                    document.getElementById('prevWord').style.display = 'flex';
+                    document.getElementById('nextWord').style.display = 'flex';
 
                     await playingWords(); // Очікуємо завершення слів
                 }
@@ -917,7 +933,6 @@
                 document.getElementById('playbackSpeed').value = settings.playbackSpeed || 1.0;
                 document.getElementById('hideTranslation').checked = settings.hideTranslation || false;
                 document.getElementById('enableWordAudio').checked = settings.enableWordAudio || false;
-                document.getElementById('enableSentenceAudio').checked = settings.enableSentenceAudio || true;
                 document.getElementById('playTranslationFirst').checked = settings.playTranslationFirst || false;
                 document.getElementById('sentenceValue').value = settings.sentenceValue || 15;
             }
