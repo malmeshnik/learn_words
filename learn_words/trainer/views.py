@@ -269,17 +269,30 @@ def edit_room_word(request):
         try:
             data = json.loads(request.body)
             word_id = data.get("wordId")
-            en = data.get("en")
-            ru = get_translate(en)
 
-            if not word_id or not en:
-                return JsonResponse({"success": False, "error": "Не всі дані передані"})
+            if not word_id: # Only check for word_id initiallyAdd commentMore actions
+                return JsonResponse({"success": False, "error": "Не всі дані передані: ID слова відсутній."})
 
-            word = Word.objects.get(
-                id=word_id, user=request.user
-            )  # якщо є прив'язка до користувача
-            word.en = en
-            word.ru = ru
+            word = Word.objects.get(id=word_id, user=request.user)
+
+            en_from_payload = data.get("en", "").strip()
+            ru_from_payload = data.get("ru", "").strip()
+
+            if en_from_payload:
+                word.en = en_from_payload
+            elif not word.en: # If en_from_payload is empty, and word.en was already empty (or somehow becomes so)
+                               # This check might be redundant if JS validation is robust, but good for backend safety.
+                return JsonResponse({"success": False, "error": "English field cannot be empty."})
+
+            if ru_from_payload:
+                word.ru = ru_from_payload
+            # If ru_from_payload is empty, word.ru remains unchanged (no get_translate call).
+
+            # Final check to ensure word.en is not empty before saving,
+            # in case it was initially empty and en_from_payload was also empty.
+            if not word.en:
+                 return JsonResponse({"success": False, "error": "English field cannot be made empty."})
+            
             word.save()
 
             return JsonResponse(

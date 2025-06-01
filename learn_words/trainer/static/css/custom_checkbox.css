@@ -31,11 +31,11 @@
 
 .checkbox-wrapper .item-checkbox:checked ~ .checkmark {
     background-color: transparent;
-    border-color: var(--text-muted);
+    border-color: #b0b3b8;
 }
 
 .checkbox-wrapper .item-checkbox:focus ~ .checkmark {
-    box-shadow: 0 0 0 2px #777;
+    box-shadow: 0 0 0 2px  #b0b3b8;
 }
 
 .checkbox-wrapper .checkmark:after {
@@ -45,7 +45,7 @@
 
     width: 5px;
     height: 10px;
-    border: solid gray; /* Сіра галочка */
+    border: solid #b0b3b8; /* Сіра галочка */
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 
