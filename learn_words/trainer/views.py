@@ -10,6 +10,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
@@ -18,7 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from gtts import gTTS
 
 from .models import (N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, Chapter, Room,
-                     Section, SentencesTranslate, SentenceTemplate,
+                     Section, SentencesTranslate, SentenceTemplate, UserSelection,
                      UserSettings, Word)
 
 
@@ -28,6 +29,14 @@ def chapter(request, section_id):
     chapters = Chapter.objects.filter(section=section, user__isnull=True)
     user_chapters = Chapter.objects.filter(section=section, user=request.user)
 
+    # Fetch selections for these user chapters
+    chapter_content_type = ContentType.objects.get_for_model(Chapter)
+    selected_chapter_ids = UserSelection.objects.filter(
+        user=request.user,
+        content_type=chapter_content_type,
+        object_id__in=[c.id for c in user_chapters]
+    ).values_list('object_id', flat=True)
+
     return render(
         request,
         "chapters.html",
@@ -35,6 +44,7 @@ def chapter(request, section_id):
             "chapters": chapters,
             "user_chapters": user_chapters,
             "section_id": section.id,
+            "selected_chapter_ids": set(selected_chapter_ids),
         },
     )
 
@@ -44,10 +54,22 @@ def section(request):
     sections = Section.objects.filter(user__isnull=True)
     user_sections = Section.objects.filter(user=request.user)
 
+    # Fetch selections for these user sections
+    section_content_type = ContentType.objects.get_for_model(Section)
+    selected_section_ids = UserSelection.objects.filter(
+        user=request.user,
+        content_type=section_content_type,
+        object_id__in=[s.id for s in user_sections]
+    ).values_list('object_id', flat=True)
+
     return render(
         request,
         "sections.html",
-        context={"sections": sections, "user_sections": user_sections},
+        context={
+            "sections": sections,
+            "user_sections": user_sections,
+            "selected_section_ids": set(selected_section_ids),
+        },
     )
 
 
@@ -56,7 +78,16 @@ def room(request, chapter_id):
     chapter = get_object_or_404(Chapter, id=chapter_id)
     rooms = Room.objects.filter(chapter=chapter, user__isnull=True)
     user_rooms = Room.objects.filter(chapter=chapter, user=request.user)
+
+    # Fetch selections for these user rooms
+    room_content_type = ContentType.objects.get_for_model(Room)
+    selected_room_ids = UserSelection.objects.filter(
+        user=request.user,
+        content_type=room_content_type,
+        object_id__in=[r.id for r in user_rooms]
+    ).values_list('object_id', flat=True)
     print(f"user_rooms: {user_rooms}")
+
     return render(
         request,
         "rooms.html",
@@ -64,6 +95,7 @@ def room(request, chapter_id):
             "rooms": rooms,
             "user_rooms": user_rooms,
             "chapter_id": chapter_id,
+            "selected_room_ids": set(selected_room_ids),
         },
     )
 
@@ -128,14 +160,27 @@ def add_room(request):
 def room_words(request, room_id):
     room = get_object_or_404(Room, id=room_id)
 
-    words = Word.objects.filter(room=room, user__isnull=True)
+    words_qs = Word.objects.filter(room=room, user__isnull=True)
+    user_words_qs = Word.objects.filter(room=room, user=request.user)
 
-    user_words = Word.objects.filter(room=room, user=request.user)
+    all_word_ids_on_page = [w.id for w in words_qs] + [uw.id for uw in user_words_qs]
+
+    word_content_type = ContentType.objects.get_for_model(Word)
+    selected_word_ids = UserSelection.objects.filter(
+        user=request.user,
+        content_type=word_content_type,
+        object_id__in=all_word_ids_on_page
+    ).values_list('object_id', flat=True)
 
     return render(
         request,
         "room_words.html",
-        {"room": room, "words": words, "user_words": user_words},
+        {
+            "room": room,
+            "words": words_qs,
+            "user_words": user_words_qs,
+            "selected_word_ids": set(selected_word_ids),
+        },
     )
 
 
@@ -810,6 +855,101 @@ def get_translate(text: str) -> str:
     SentencesTranslate.objects.create(sentence_en=text, sentence_ru=translate)
 
     return translate
+
+
+@login_required
+def update_selection(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('item_id')
+        item_type_str = data.get('item_type') # e.g., "section", "word"
+        is_checked = data.get('is_checked')
+
+        if item_id is None or item_type_str is None or is_checked is None:
+            return JsonResponse({'success': False, 'error': 'Missing data'}, status=400)
+
+        # Map item_type_str to actual model classes
+        # Ensure your item_type strings from JS match these keys
+        model_map = {
+            'section': Section,
+            'chapter': Chapter,
+            'room': Room,
+            'word': Word,
+        }
+
+        ModelClass = model_map.get(item_type_str.lower())
+        if not ModelClass:
+            return JsonResponse({'success': False, 'error': f'Invalid item type: {item_type_str}'}, status=400)
+
+        content_type = ContentType.objects.get_for_model(ModelClass)
+
+        # Validate item_id by trying to fetch the object
+        # This ensures the object_id is valid for the given content_type
+        try:
+            target_object = ModelClass.objects.get(pk=item_id)
+        except ModelClass.DoesNotExist:
+            return JsonResponse({'success': False, 'error': f'{ModelClass.__name__} not found with id {item_id}'}, status=404)
+
+
+        if is_checked:
+            selection, created = UserSelection.objects.get_or_create(
+                user=request.user,
+                content_type=content_type,
+                object_id=item_id
+            )
+            return JsonResponse({'success': True, 'status': 'created' if created else 'exists'})
+        else:
+            deleted_count, _ = UserSelection.objects.filter(
+                user=request.user,
+                content_type=content_type,
+                object_id=item_id
+            ).delete()
+            return JsonResponse({'success': True, 'status': 'deleted', 'deleted_count': deleted_count})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except ContentType.DoesNotExist:
+         return JsonResponse({'success': False, 'error': f'ContentType not found for {item_type_str}'}, status=400)
+    except Exception as e:
+        # Log the exception for server-side review
+        print(f"Error in update_selection: {e}") # Or use proper logging
+        return JsonResponse({'success': False, 'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+
+
+@login_required
+def delete_selected_words(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        word_ids = data.get('word_ids')
+
+        if not isinstance(word_ids, list) or not word_ids:
+            return JsonResponse({'success': False, 'error': 'Invalid or missing word_ids'}, status=400)
+
+        # Ensure all IDs are integers (or can be converted to integers)
+        try:
+            processed_word_ids = [int(id_str) for id_str in word_ids]
+        except ValueError:
+            return JsonResponse({'success': False, 'error': 'Invalid word ID format in list.'}, status=400)
+
+        # Delete words that belong to the current user
+        deleted_count, _ = Word.objects.filter(
+            id__in=processed_word_ids,
+            user=request.user  # Important: only delete user's own words
+        ).delete()
+
+        return JsonResponse({'success': True, 'deleted_count': deleted_count})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print(f"Error in delete_selected_words: {e}") # Or use proper logging
+        return JsonResponse({'success': False, 'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 def get_translate_to_en(text: str) -> str:
     url = "https://google-translate-official.p.rapidapi.com/translate"

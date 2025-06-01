@@ -47,10 +47,24 @@
             {% if user_rooms %}
                 {% for room in user_rooms %}
                 <li class="room-item" data-room-id="{{ room.id }}">
-                    <a href="{% url 'user_room_words' room.id %}">
-                        <span>{{ room.name }}</span>
-                    </a>
+                    <label class="custom-checkbox-label">
+                        <div class="item-content">
+                            <a href="{% url 'user_room_words' room.id %}">
+                                <span>{{ room.name }}</span>
+                            </a>
+                        </div>
+                    </label>
                     <div class="room-actions">
+                        <label class="checkbox-wrapper">
+                            <input
+                                type="checkbox"
+                                class="item-checkbox"
+                                data-item-type="room"
+                                data-item-id="{{ room.id }}"
+                                {% if room.id in selected_room_ids %}checked{% endif %}
+                            >
+                            <span class="checkmark"></span>
+                        </label>
                         <button class="edit-room" room-id="{{ room.id }}" room-name="{{ room.name }}">
                             <i class="fas fa-edit"></i>
                         </button>

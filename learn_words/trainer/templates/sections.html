@@ -50,12 +50,26 @@
             {% if user_sections %}
                 {% for section in user_sections %}
                     <li class="room-item" data-room-id="{{ section.id }}">
-                        <a href="{% url 'chapters' section.id %}">
-                            <span>
-                                    {{ section.name }}
-                            </span>
-                        </a>
+                        <label class="custom-checkbox-label">
+                            <div class="item-content">
+                                <a href="{% url 'chapters' section.id %}">
+                                    <span>
+                                            {{ section.name }}
+                                    </span>
+                                </a>
+                            </div>
+                        </label>
                         <div class="room-actions">
+                            <label class="checkbox-wrapper">
+                                <input
+                                    type="checkbox"
+                                    class="item-checkbox"
+                                    data-item-type="section"
+                                    data-item-id="{{ section.id }}"
+                                    {% if section.id in selected_section_ids %}checked{% endif %}
+                                >
+                                <span class="checkmark"></span>
+                            </label>
                             <button class="icon-btn edit-room" room-id="{{ section.id }}" room-name="{{ section.name }}">
                                 <i class="fas fa-edit"></i>
                             </button>

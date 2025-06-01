@@ -1,0 +1,63 @@
+/* Custom Checkbox Styles */
+.checkbox-wrapper {
+    position: relative;
+    display: inline-block;
+    /* Adjust margin as needed, or let parent control it.
+       Original was: margin-right: var(--spacing-md); */
+    vertical-align: middle; /* Helps align with text if next to it */
+}
+
+.checkbox-wrapper .item-checkbox { /* Targets .item-checkbox within .checkbox-wrapper */
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkbox-wrapper .checkmark {
+    position: relative;
+    display: inline-block; /* Changed from 'inherit' for consistency */
+    height: 22px;
+    width: 22px;
+    background-color: #2d2d2d; /* From original .checkmark */
+    border: 2px solid var(--text-muted); /* From original .checkmark */
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    vertical-align: middle; /* Ensures it aligns well if wrapper is inline-block */
+}
+
+.checkbox-wrapper .item-checkbox:checked ~ .checkmark {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.checkbox-wrapper .item-checkbox:focus ~ .checkmark {
+    box-shadow: 0 0 0 2px rgba(79, 138, 255, 0.5);
+}
+
+.checkbox-wrapper .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-wrapper .item-checkbox:checked ~ .checkmark:after {
+    display: block;
+}
+
+/* Optional: Style for the label that makes the whole thing clickable */
+/* This assumes a structure like: <label class="custom-checkbox-label"> <div class="checkbox-wrapper">...</div> Text </label> */
+.custom-checkbox-label {
+    display: flex; /* Or inline-flex */
+    align-items: center;
+    cursor: pointer;
+    gap: var(--spacing-sm); /* Adds space between checkbox and text if structure is label > wrapper + text_span */
+}
