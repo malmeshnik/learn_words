@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load contenttypes %}
 
 {% block title %}Список глав{% endblock %}
 
@@ -50,6 +51,13 @@
             {% if user_sections %}
                 {% for section in user_sections %}
                     <li class="room-item" data-room-id="{{ section.id }}">
+                        <input
+                            type="checkbox"
+                            class="item-checkbox"
+                            data-item-type="section"
+                            data-item-id="{{ section.id }}"
+                            {% if section.id in selected_section_ids %}checked{% endif %}
+                        >
                         <a href="{% url 'chapters' section.id %}">
                             <span>
                                     {{ section.name }}

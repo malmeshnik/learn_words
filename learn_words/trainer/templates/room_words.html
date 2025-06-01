@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load contenttypes %}
 <html lang="uk" class="dark-theme">
 <head>
     <meta charset="UTF-8">
@@ -69,9 +70,12 @@
                         <button type="button" onclick="addSelectedWords()" class="primary-btn">
                             <i class="fas fa-plus-circle"></i> Додати обрані до мого списку
                         </button>
+                        <button type="button" id="deleteSelectedWordsBtn" class="secondary-btn">
+                            <i class="fas fa-trash-alt"></i> Delete Selected Words
+                        </button>
                         <button type="button" onclick="toggleSelectAll()" class="secondary-btn">
                             <i class="fas fa-check-double"></i> <span id="selectAllText">Вибрати все</span>
-                        </button>              
+                        </button>
                     </div>
 
                     <!-- Загальні слова кімнати -->
@@ -81,7 +85,15 @@
                                 <li class="word-item">
                                     <label class="word-label">
                                         <div class="checkbox-wrapper">
-                                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
+                                            <input
+                                                class="word-checkbox item-checkbox"
+                                                type="checkbox"
+                                                name="selected_words"
+                                                value="{{ word.id }}"
+                                                data-item-type="word"
+                                                data-item-id="{{ word.id }}"
+                                                {% if word.id in selected_word_ids %}checked{% endif %}
+                                            >
                                             <span class="checkmark"></span>
                                         </div>
                                         <div class="word-content">
@@ -102,7 +114,15 @@
                                 <li class="word-item">
                                     <label class="word-label">
                                         <div class="checkbox-wrapper">
-                                            <input class="word-checkbox" type="checkbox" name="selected_words" value="{{ word.id }}">
+                                            <input
+                                                class="word-checkbox item-checkbox"
+                                                type="checkbox"
+                                                name="selected_words"
+                                                value="{{ word.id }}"
+                                                data-item-type="word"
+                                                data-item-id="{{ word.id }}"
+                                                {% if word.id in selected_word_ids %}checked{% endif %}
+                                            >
                                             <span class="checkmark"></span>
                                         </div>
                                         <div class="word-content">
@@ -161,6 +181,15 @@
     <script>
         let allSelected = false;
         let isRandom = {% if user_settings.random_playback %}true{% else %}false{% endif %};
+
+        function getCSRFToken() {
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                return csrfInput.value;
+            }
+            console.warn('CSRF token input not found in room_words.html');
+            return '';
+        }
         
         // Функція для показу спінера перед переходом на іншу сторінку
         function showSpinner() {
@@ -386,8 +415,8 @@
         }
 
         function addSelectedWords() {
-            const selected = Array.from(document.querySelectorAll('input[name="selected_words"]:checked'))
-                .map(cb => cb.value);
+            const selected = Array.from(document.querySelectorAll('.item-checkbox[data-item-type="word"]:checked'))
+                .map(cb => cb.dataset.itemId);
                 
             if (selected.length === 0) {
                 const messageEl = document.getElementById("message");
@@ -473,6 +502,98 @@
                 this.style.transform = 'translateY(0)';
             });
         });
+
+        function handleDeleteSelectedWords() {
+            const selectedWordIds = Array.from(document.querySelectorAll('.item-checkbox[data-item-type="word"]:checked'))
+                                       .map(cb => cb.dataset.itemId);
+
+            if (selectedWordIds.length === 0) {
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = "Please select words to delete.";
+                messageEl.className = "feedback-message error";
+                setTimeout(() => {
+                    messageEl.textContent = "";
+                    messageEl.className = "feedback-message";
+                }, 3000);
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete the selected words? This action will only delete words you own.')) {
+                return;
+            }
+
+            const csrfToken = getCSRFToken();
+            showSpinner();
+
+            fetch("/delete_selected_words/", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ word_ids: selectedWordIds }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideSpinner();
+                if (data.success) {
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = `Successfully deleted ${data.deleted_count} words.`;
+                    messageEl.className = "feedback-message success";
+                    setTimeout(() => {
+                        messageEl.textContent = "";
+                        messageEl.className = "feedback-message";
+                    }, 3000);
+
+                    // Remove deleted words from the DOM
+                    selectedWordIds.forEach(wordId => {
+                        const checkbox = document.querySelector(`.item-checkbox[data-item-id="${wordId}"]`);
+                        if (checkbox) {
+                            const wordItem = checkbox.closest('.word-item');
+                            if (wordItem) {
+                                wordItem.style.opacity = '0';
+                                wordItem.style.transform = 'translateX(20px)';
+                                setTimeout(() => {
+                                    wordItem.remove();
+                                }, 300);
+                            }
+                        }
+                    });
+                } else {
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Error deleting words: " + (data.error || "Unknown error");
+                    messageEl.className = "feedback-message error";
+                     setTimeout(() => {
+                        messageEl.textContent = "";
+                        messageEl.className = "feedback-message";
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                hideSpinner();
+                console.error('Error deleting selected words:', error);
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = "Error deleting words. See console for details.";
+                messageEl.className = "feedback-message error";
+                setTimeout(() => {
+                    messageEl.textContent = "";
+                    messageEl.className = "feedback-message";
+                }, 5000);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Other listeners if any...
+            const deleteBtn = document.getElementById('deleteSelectedWordsBtn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', handleDeleteSelectedWords);
+            }
+        });
+
+        // Function to hide spinner (if not already globally available and used by other functions here)
+        function hideSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
     </script>
 </body>
 </html>
