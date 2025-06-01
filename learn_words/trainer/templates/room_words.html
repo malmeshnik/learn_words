@@ -193,22 +193,24 @@
 
         function toggleSelectAll() {
             const checkboxes = document.querySelectorAll('.item-checkbox[data-item-type="word"]');
-            allSelected = !allSelected; // Toggle the global state
+            allSelected = !allSelected; // Toggle the global state for button text
 
             checkboxes.forEach(checkbox => {
-                checkbox.checked = allSelected; // Set the state of the current checkbox
+                const newCheckedState = !checkbox.checked; // Invert current state
+                checkbox.checked = newCheckedState; // Apply new state
 
-                // Call updateSelection for each checkbox
+                // Call updateSelection for each checkbox with its new state
                 const itemId = checkbox.dataset.itemId;
                 const itemType = checkbox.dataset.itemType;
                 if (itemId && itemType) {
-                    updateSelection(itemId, itemType, checkbox.checked);
+                    updateSelection(itemId, itemType, newCheckedState);
                 } else {
                     console.warn('Missing data-item-id or data-item-type on checkbox:', checkbox);
                 }
             });
         
             const button = document.getElementById('selectAllText');
+            // Button text is determined by the toggled allSelected flag
             button.textContent = allSelected ? "Скасувати вибір" : "Вибрати все";
         }        
 
