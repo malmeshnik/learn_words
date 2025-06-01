@@ -172,6 +172,8 @@ def room_words(request, room_id):
         object_id__in=all_word_ids_on_page
     ).values_list('object_id', flat=True)
 
+    print(set(selected_word_ids))
+
     return render(
         request,
         "room_words.html",
