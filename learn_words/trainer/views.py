@@ -20,7 +20,7 @@ from gtts import gTTS
 
 from .models import (N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, Chapter, Room,
                      Section, SentencesTranslate, SentenceTemplate, UserSelection,
-                     UserSettings, Word)
+                     UserSettings, Word, WordRecording)
 
 
 @login_required(login_url="/login/")
@@ -172,14 +172,32 @@ def room_words(request, room_id):
         object_id__in=all_word_ids_on_page
     ).values_list('object_id', flat=True)
 
+    # Get user recordings
+    user_recordings = WordRecording.objects.filter(
+        user=request.user,
+        word_id__in=all_word_ids_on_page
+    )
+    user_recordings_map = {rec.word_id: rec.recording.url for rec in user_recordings if rec.recording}
+
+    processed_words = []
+    for word_obj in list(words_qs):
+        word_obj.user_recording_url = user_recordings_map.get(word_obj.id)
+        processed_words.append(word_obj)
+
+    processed_user_words = []
+    for word_obj in list(user_words_qs):
+        word_obj.user_recording_url = user_recordings_map.get(word_obj.id)
+        processed_user_words.append(word_obj)
+
     return render(
         request,
         "room_words.html",
         {
             "room": room,
-            "words": words_qs,
-            "user_words": user_words_qs,
+            "words": processed_words,
+            "user_words": processed_user_words,
             "selected_word_ids": set(selected_word_ids),
+            "user_recordings_map": user_recordings_map, # Kept for direct access if needed, though annotation is primary
         },
     )
 
@@ -868,6 +886,39 @@ def get_translate(text: str) -> str:
     SentencesTranslate.objects.create(sentence_en=text, sentence_ru=translate)
 
     return translate
+
+
+@login_required
+def upload_recording(request, word_id):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+    try:
+        word_object = Word.objects.get(pk=word_id)
+    except Word.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Word not found.'}, status=404)
+
+    if 'recording' not in request.FILES or not request.FILES['recording']:
+        return JsonResponse({'status': 'error', 'message': 'No recording file provided.'}, status=400)
+
+    audio_file = request.FILES['recording']
+
+    try:
+        recording, created = WordRecording.objects.update_or_create(
+            user=request.user,
+            word=word_object,
+            defaults={'recording': audio_file}
+        )
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Recording saved!',
+            'recording_id': recording.id,
+            'created': created,
+            'recording_url': recording.recording.url if recording.recording else None
+        })
+    except Exception as e:
+        # Log the exception e
+        return JsonResponse({'status': 'error', 'message': f'Error saving recording: {str(e)}'}, status=500)
 
 
 @login_required

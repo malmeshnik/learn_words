@@ -17,6 +17,7 @@ urlpatterns = [
     path('rooms/room/<int:room_id>/', views.room_words, name='room_words'),
     path('rooms/room/user/<int:room_id>', views.room_words, name='user_room_words'),
     path('add_word/', views.add_word, name='add_word'),
+    path('words/<int:word_id>/upload_recording/', views.upload_recording, name='upload_word_recording'),
     path('add-selected-words/', views.add_selected_words, name='add_selected_words'),
     path('add_selected_categories/', views.add_selected_categories, name='add_selected_categories'),
     path("learn/", views.learn_words, name="learn_words"),

@@ -851,3 +851,62 @@ input:invalid {
 .word-actions .icon-btn:hover {
     transform: scale(1.1);
 }
+
+/* Styles for recording/playback buttons */
+.record-btn i.fa-microphone,
+.record-btn i.fa-stop,
+.play-btn i.fa-play,
+.play-btn i.fa-pause {
+    font-size: 1em; /* Consistent with other icon-btn if needed, or adjust */
+}
+
+.record-btn.recording {
+    /* Example: make it visually distinct when recording */
+    background-color: rgba(229, 57, 53, 0.15); /* Light red background */
+    color: var(--error-color); /* Red icon */
+    border: 1px solid var(--error-color); /* Optional: red border */
+}
+
+.record-btn.recording:hover {
+    background-color: rgba(229, 57, 53, 0.25); /* Darker red on hover */
+}
+
+
+.audio-player {
+    vertical-align: middle;
+    margin-left: 8px;
+    height: 30px; /* Slightly taller to fit controls better */
+    width: 190px; /* Adjust as needed */
+    background-color: var(--bg-elevated); /* Match other elements */
+    border-radius: var(--border-radius-sm);
+}
+
+/* Ensure audio player controls are styled for dark theme if possible (browser dependent) */
+.audio-player::-webkit-media-controls-panel {
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    border-radius: var(--border-radius-sm);
+}
+
+.audio-player::-webkit-media-controls-play-button,
+.audio-player::-webkit-media-controls-current-time-display,
+.audio-player::-webkit-media-controls-time-remaining-display,
+.audio-player::-webkit-media-controls-timeline,
+.audio-player::-webkit-media-controls-volume-slider,
+.audio-player::-webkit-media-controls-mute-button,
+.audio-player::-webkit-media-controls-fullscreen-button { /* Though fullscreen might not be relevant */
+    color: var(--text-primary) !important; /* Attempt to style icons/text */
+    background-color: transparent; /* Remove default browser button backgrounds if any */
+}
+
+
+/* Adjust spacing in word-actions if new buttons cause layout issues */
+/* The existing .word-actions { display: flex; gap: var(--spacing-sm); } might be sufficient */
+/* If more specific control is needed: */
+.word-item .word-actions .icon-btn {
+    /* Adjust if existing margin/gap is not ideal with new buttons */
+    /* margin-right: 5px; */ /* This was an example, existing gap might be fine */
+}
+.word-item .word-actions .icon-btn:last-child {
+    /* margin-right: 0; */ /* Ensure no extra margin on the last button */
+}

@@ -73,6 +73,15 @@ class N1(models.Model):
     def __str__(self):
         return self.word
 
+class WordRecording(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    word = models.ForeignKey(Word, on_delete=models.CASCADE)
+    recording = models.FileField(upload_to='word_recordings/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.word.en} - Recording"
+
 class UserSelection(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
