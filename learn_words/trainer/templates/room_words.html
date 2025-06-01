@@ -422,27 +422,10 @@
         }
 
         function addSelectedWords() {
-            const checkboxes = document.querySelectorAll('.item-checkbox[data-item-type="word"]');
-            let selectedWordsForSession = []; // For existing session logic
-            let wordsSelectedForDBUpdate = 0;
-
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    const itemId = checkbox.dataset.itemId;
-                    const itemType = checkbox.dataset.itemType;
-
-                    // New logic: Call updateSelection for each selected word to update DB
-                    if (itemId && itemType) {
-                        updateSelection(itemId, itemType, true); // true because it's checked
-                        wordsSelectedForDBUpdate++;
-                    }
-
-                    // Existing logic: Collect IDs for session-based learning
-                    selectedWordsForSession.push(itemId);
-                }
-            });
+            const selected = Array.from(document.querySelectorAll('input[name="selected_words"]:checked'))
+                .map(cb => cb.value);
                 
-            if (wordsSelectedForDBUpdate === 0) { // Check if any words were selected for DB update
+            if (selected.length === 0) {
                 const messageEl = document.getElementById("message");
                 messageEl.textContent = "Будь ласка, виберіть слова для додавання.";
                 messageEl.className = "feedback-message error";
@@ -453,49 +436,47 @@
                 return;
             }
             
-            // Display a message based on DB update
-            const messageEl = document.getElementById("message");
-            messageEl.textContent = `Вибрані слова (${wordsSelectedForDBUpdate}) оновлено у вашому списку.`;
-            messageEl.className = "feedback-message success";
-            setTimeout(() => {
-                messageEl.textContent = "";
-                messageEl.className = "feedback-message";
-            }, 3000); // Message will disappear after 3 seconds
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-            // Existing logic for session-based word learning (if still needed)
-            // This part can be reviewed or removed if updateSelection covers all needs
-            if (selectedWordsForSession.length > 0) {
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                // showSpinner(); // Spinner might be shown by updateSelection or here if needed
+            // Показуємо спінер
+            showSpinner();
 
-                fetch("{% url 'add_selected_words' %}", { // This URL might be for session logic
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                    },
-                    body: JSON.stringify({
-                        word_ids: selectedWordsForSession,
-                        is_random: isRandom // Assuming isRandom is defined globally
-                    }),
-                })
-                .then(res => res.json())
-                .then(data => {
-                    // hideSpinner(); // Hide spinner if shown
-                    if (data.success) {
-                        console.log("Session words processed successfully.");
-                        // Removed: window.location.href = "/categories/";
-                        // The page will not redirect, allowing users to see messages.
-                    } else {
-                        console.error("Error processing session words:", data.error);
-                        // Optionally, display a different message for session processing errors
-                    }
-                })
-                .catch(error => {
-                    // hideSpinner(); // Hide spinner if shown
-                    console.error('Error processing session words:', error);
-                });
-            }
+            fetch("{% url 'add_selected_words' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({
+                    word_ids: selected,
+                    is_random: isRandom
+                }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Слова додано до вашого списку!";
+                    messageEl.className = "feedback-message success";
+                    
+                    // Додаємо невелику затримку перед переходом для показу повідомлення
+                    setTimeout(() => {
+                        window.location.href = "/categories/";
+                    }, 1000);
+                } else {
+                    const messageEl = document.getElementById("message");
+                    messageEl.textContent = "Помилка при додаванні.";
+                    messageEl.className = "feedback-message error";
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = "Помилка при додаванні.";
+                messageEl.className = "feedback-message error";
+                document.getElementById('loadingSpinner').style.display = 'none';
+            });
         }
 
         document.getElementById('randomPlayback').addEventListener('change', function() {
