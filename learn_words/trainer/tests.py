@@ -304,3 +304,164 @@ class CheckboxStateTests(TestCase):
         input_tag_relevant_part = parts[1].split('>')[0]
         self.assertIn('checked', input_tag_relevant_part,
                       f"Checkbox for admin word ID {self.admin_word_in_room.id} was expected to be checked. Part: {input_tag_relevant_part}")
+
+
+# Imports for VoiceRecordingTests (ensure these are at the top of the file with other imports)
+# from django.core.files.uploadedfile import SimpleUploadedFile
+# from .models import WordRecording (Word, Room, Chapter, Section should be there)
+# import os (if manual file cleanup is used)
+
+class VoiceRecordingTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(username='testuser_rec', password='password123')
+        # Create Section and Chapter if Room requires them
+        cls.section = Section.objects.create(name='Test Rec Section')
+        cls.chapter = Chapter.objects.create(name='Test Rec Chapter', section=cls.section)
+        cls.room = Room.objects.create(name='Test Rec Room', chapter=cls.chapter)
+        cls.word = Word.objects.create(room=cls.room, en='hello_rec', ru='привет_rec')
+        cls.word_no_recording = Word.objects.create(room=cls.room, en='world_rec', ru='мир_rec')
+
+        # URL for upload view
+        cls.upload_url = reverse('upload_word_recording', args=[cls.word.id])
+        cls.room_words_url = reverse('room_words', args=[cls.room.id])
+
+    def test_word_recording_creation(self):
+        audio_content = b'dummy audio data'
+        audio_file = SimpleUploadedFile("test_audio.webm", audio_content, content_type="audio/webm")
+
+        recording = WordRecording.objects.create(
+            user=self.user,
+            word=self.word,
+            recording=audio_file
+        )
+        self.assertEqual(WordRecording.objects.count(), 1)
+        self.assertEqual(recording.user, self.user)
+        self.assertEqual(recording.word, self.word)
+        self.assertTrue(recording.recording.name.startswith('word_recordings/test_audio'))
+
+        # Cleanup
+        if hasattr(recording.recording, 'path'):
+            import os
+            if os.path.exists(recording.recording.path):
+                os.remove(recording.recording.path)
+        recording.delete()
+
+    def test_upload_recording_unauthenticated(self):
+        client = Client() # New client for unauthenticated request
+        response = client.post(self.upload_url, {})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse('login')))
+
+    def test_upload_recording_authenticated_success(self):
+        self.client.login(username='testuser_rec', password='password123')
+        audio_content = b'new audio data'
+        audio_file = SimpleUploadedFile("upload_test.webm", audio_content, content_type="audio/webm")
+
+        initial_recording_count = WordRecording.objects.count()
+
+        response = self.client.post(self.upload_url, {'recording': audio_file})
+
+        self.assertEqual(response.status_code, 200)
+        json_response = response.json()
+        self.assertEqual(json_response['status'], 'success')
+        self.assertEqual(WordRecording.objects.count(), initial_recording_count + 1)
+
+        recording = WordRecording.objects.get(user=self.user, word=self.word)
+        self.assertTrue(recording.recording.url)
+        self.assertEqual(json_response['recording_url'], recording.recording.url)
+
+        if hasattr(recording.recording, 'path'):
+            import os
+            if os.path.exists(recording.recording.path):
+                os.remove(recording.recording.path)
+        recording.delete()
+
+    def test_upload_recording_missing_file(self):
+        self.client.login(username='testuser_rec', password='password123')
+        response = self.client.post(self.upload_url, {})
+        self.assertEqual(response.status_code, 400)
+        json_response = response.json()
+        self.assertEqual(json_response['status'], 'error')
+        self.assertEqual(json_response['message'], 'No recording file provided.')
+
+    def test_upload_recording_invalid_word_id(self):
+        self.client.login(username='testuser_rec', password='password123')
+        invalid_url = reverse('upload_word_recording', args=[99999])
+        audio_content = b'audio for invalid word'
+        audio_file = SimpleUploadedFile("invalid.webm", audio_content, content_type="audio/webm")
+        response = self.client.post(invalid_url, {'recording': audio_file})
+        self.assertEqual(response.status_code, 404)
+        json_response = response.json()
+        self.assertEqual(json_response['status'], 'error')
+        self.assertEqual(json_response['message'], 'Word not found.')
+
+    def test_room_words_view_context_with_recording(self):
+        self.client.login(username='testuser_rec', password='password123')
+
+        audio_content = b'context test audio'
+        audio_file = SimpleUploadedFile("context_audio.webm", audio_content, content_type="audio/webm")
+        user_recording = WordRecording.objects.create(
+            user=self.user,
+            word=self.word,
+            recording=audio_file
+        )
+
+        response = self.client.get(self.room_words_url)
+        self.assertEqual(response.status_code, 200)
+
+        found_word_in_context = None
+        # Words created by users (like self.word) are expected in 'user_words' if the view logic is standard
+        # or if it's an admin word that the user has interacted with.
+        # Given self.word was created without user=self.user, it would be a general word.
+        # Let's adjust the test assumption: self.word is a general word.
+        # If self.word was user-specific, it would be in response.context['user_words']
+
+        # Test word (self.word) is a general word in this setup
+        for word_obj in response.context['words']:
+            if word_obj.id == self.word.id:
+                found_word_in_context = word_obj
+                break
+        # If it could also be a user word (e.g. if user added it)
+        if not found_word_in_context and 'user_words' in response.context:
+           for word_obj in response.context['user_words']:
+               if word_obj.id == self.word.id:
+                   found_word_in_context = word_obj
+                   break
+
+        self.assertIsNotNone(found_word_in_context, f"Test word (ID: {self.word.id}) not found in context lists.")
+        self.assertTrue(hasattr(found_word_in_context, 'user_recording_url'),
+                        f"Word (ID: {self.word.id}) missing 'user_recording_url' attribute.")
+        self.assertEqual(found_word_in_context.user_recording_url, user_recording.recording.url)
+
+        word_without_rec_in_context = None
+        for word_obj in response.context['words']:
+            if word_obj.id == self.word_no_recording.id:
+                word_without_rec_in_context = word_obj
+                break
+        if not word_without_rec_in_context and 'user_words' in response.context:
+            for word_obj in response.context['user_words']:
+                if word_obj.id == self.word_no_recording.id:
+                    word_without_rec_in_context = word_obj
+                    break
+
+        self.assertIsNotNone(word_without_rec_in_context, f"Word_no_recording (ID: {self.word_no_recording.id}) not found in context.")
+        self.assertTrue(hasattr(word_without_rec_in_context, 'user_recording_url'),
+                        f"Word (ID: {self.word_no_recording.id}) missing 'user_recording_url' attribute.")
+        self.assertIsNone(word_without_rec_in_context.user_recording_url)
+
+        if hasattr(user_recording.recording, 'path'):
+            import os
+            if os.path.exists(user_recording.recording.path):
+                os.remove(user_recording.recording.path)
+        user_recording.delete()
+
+# Ensure all models used in tests are imported at the top of the file.
+# from .models import Word, Room, WordRecording, Chapter, Section, UserSettings
+# from django.core.files.uploadedfile import SimpleUploadedFile
+# from django.test import TestCase, Client
+# from django.urls import reverse
+# from django.contrib.auth.models import User
+# from django.contrib.contenttypes.models import ContentType
+# import json
+# import os

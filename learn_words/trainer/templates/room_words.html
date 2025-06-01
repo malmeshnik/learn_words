@@ -101,6 +101,17 @@
                                             <span class="word-ru">{{ word.ru }}</span>
                                         </div>
                                     </label>
+                                    <div class="word-actions">
+                                        <button type="button" class="icon-btn record-btn" data-word-id="{{ word.id }}">
+                                            <i class="fas fa-microphone"></i>
+                                        </button>
+                                        <button type="button" class="icon-btn play-btn" data-word-id="{{ word.id }}"
+                                                {% if word.user_recording_url %}style="display:inline-block;"{% else %}style="display:none;"{% endif %}>
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <audio class="audio-player" data-word-id="{{ word.id }}"
+                                               {% if word.user_recording_url %}src="{{ word.user_recording_url }}"{% endif %}></audio>
+                                    </div>
                                 </li>
                             {% endfor %}
                         </ul>
@@ -131,6 +142,15 @@
                                         </div>
                                     </label>
                                     <div class="word-actions">
+                                        <button type="button" class="icon-btn record-btn" data-word-id="{{ word.id }}">
+                                            <i class="fas fa-microphone"></i>
+                                        </button>
+                                        <button type="button" class="icon-btn play-btn" data-word-id="{{ word.id }}"
+                                                {% if word.user_recording_url %}style="display:inline-block;"{% else %}style="display:none;"{% endif %}>
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <audio class="audio-player" data-word-id="{{ word.id }}"
+                                               {% if word.user_recording_url %}src="{{ word.user_recording_url }}"{% endif %}></audio>
                                         <button type="button" class="icon-btn edit-word" onclick="editWord('{{ word.id }}', '{{ word.en|escapejs }}', '{{ word.ru|escapejs }}')">
                                             <i class="fas fa-pen"></i>
                                         </button>
@@ -608,5 +628,179 @@
         function hideSpinner() {
             document.getElementById('loadingSpinner').style.display = 'none';
         }
+
+        // JavaScript for recording and playback
+        let mediaRecorder;
+        let audioChunks = [];
+        let currentRecordingWordId = null;
+
+        document.querySelectorAll('.record-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const wordId = this.dataset.wordId;
+
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    if (currentRecordingWordId === wordId) { // Clicked on the same button to stop
+                        mediaRecorder.stop(); // This will trigger onstop which calls uploadAudio
+                        // Icon and class changes are handled in onstop/uploadAudio
+                    } else { // Clicked on a different record button while already recording
+                        mediaRecorder.stop(); // Stop current one, its onstop will handle icon/class
+                        // Then start new recording for the new button
+                        startRecording(wordId, this); // 'this' is the new button
+                    }
+                } else { // Not recording, so start
+                    startRecording(wordId, this); // 'this' is the button clicked
+                }
+            });
+        });
+
+        function startRecording(wordId, buttonElement) {
+            currentRecordingWordId = wordId;
+            audioChunks = []; // Clear previous chunks
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+                    mediaRecorder.onstop = uploadAudio; // uploadAudio will handle icon and class changes on stop
+                    mediaRecorder.start();
+                    buttonElement.querySelector('i').classList.remove('fa-microphone');
+                    buttonElement.querySelector('i').classList.add('fa-stop');
+                    buttonElement.classList.add('recording');
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                    alert('Could not access microphone. Please ensure permission is granted.');
+                    buttonElement.classList.remove('recording'); // Ensure class is removed on error
+                    currentRecordingWordId = null;
+                });
+        }
+
+        function uploadAudio() {
+            const wordIdForUpload = currentRecordingWordId; // Capture it before it's potentially nulled
+            const recordButton = document.querySelector(`.record-btn[data-word-id="${wordIdForUpload}"]`);
+
+            if (recordButton) {
+                recordButton.classList.remove('recording');
+                const icon = recordButton.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-stop');
+                    icon.classList.add('fa-microphone');
+                }
+            }
+
+            if (!wordIdForUpload || audioChunks.length === 0) {
+                console.log("Upload cancelled: No active recording or no audio data.");
+                currentRecordingWordId = null;
+                return;
+            }
+
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            audioChunks = []; // Clear chunks after creating blob for this upload
+
+            const formData = new FormData();
+            formData.append('recording', audioBlob, `recording_word_${wordIdForUpload}.webm`);
+            const csrfToken = getCSRFToken();
+
+            showSpinner();
+
+            fetch(`/words/${wordIdForUpload}/upload_recording/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideSpinner();
+                const messageEl = document.getElementById("message");
+                // Button icon and class already reset at the start of uploadAudio
+
+                if (data.status === 'success') {
+                    messageEl.textContent = data.message || 'Recording saved!';
+                    messageEl.className = "feedback-message success";
+                    const playButton = document.querySelector(`.play-btn[data-word-id="${wordIdForUpload}"]`);
+                    const audioPlayer = document.querySelector(`.audio-player[data-word-id="${wordIdForUpload}"]`);
+                    if (playButton && audioPlayer) {
+                        playButton.style.display = 'inline-block';
+                        if (data.recording_url) {
+                            audioPlayer.src = data.recording_url;
+                        }
+                    }
+                } else {
+                    messageEl.textContent = data.message || 'Error saving recording.';
+                    messageEl.className = "feedback-message error";
+                }
+                setTimeout(() => {
+                    messageEl.textContent = "";
+                    messageEl.className = "feedback-message";
+                }, 3000);
+                // currentRecordingWordId should already be null or will be for the next recording
+            })
+            .catch(error => {
+                hideSpinner();
+                console.error('Error uploading recording:', error);
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = 'Error uploading recording.';
+                messageEl.className = "feedback-message error";
+                // Button icon and class should have been reset already at the start of uploadAudio
+                setTimeout(() => {
+                    messageEl.textContent = "";
+                    messageEl.className = "feedback-message";
+                }, 3000);
+            })
+            .finally(() => {
+                 // Ensure currentRecordingWordId is reset if it was the one just uploaded.
+                 // This is important if a new recording was started on a different button,
+                 // then this .finally block for the *previous* recording's upload might run.
+                 if (currentRecordingWordId === wordIdForUpload) {
+                    currentRecordingWordId = null;
+                 }
+            });
+        }
+
+        document.querySelectorAll('.play-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const wordId = this.dataset.wordId;
+                const audioPlayer = document.querySelector(`.audio-player[data-word-id="${wordId}"]`);
+                // Check if src is valid and not just the base URL (which happens if src is empty string)
+                if (audioPlayer && audioPlayer.src && audioPlayer.src !== window.location.href) {
+                    if (audioPlayer.paused) {
+                        audioPlayer.play().catch(e => console.error("Error playing audio:", e));
+                        this.querySelector('i').classList.remove('fa-play');
+                        this.querySelector('i').classList.add('fa-pause');
+                    } else {
+                        audioPlayer.pause();
+                        // Icon will be reset by the 'pause' event listener on the audio element
+                    }
+                } else {
+                    alert('No recording available or audio source is invalid.');
+                    // this.style.display = 'none'; // Optionally hide if no valid src
+                }
+            });
+        });
+
+        document.querySelectorAll('.audio-player').forEach(player => {
+            player.addEventListener('ended', function() {
+                const wordId = this.dataset.wordId;
+                const playButtonIcon = document.querySelector(`.play-btn[data-word-id="${wordId}"] i`);
+                if (playButtonIcon) {
+                    playButtonIcon.classList.remove('fa-pause');
+                    playButtonIcon.classList.add('fa-play');
+                }
+            });
+            player.addEventListener('pause', function() {
+                const wordId = this.dataset.wordId;
+                const playButtonIcon = document.querySelector(`.play-btn[data-word-id="${wordId}"] i`);
+                // Only reset if it's showing pause and audio is actually paused (not ended, which also fires pause)
+                if (playButtonIcon && playButtonIcon.classList.contains('fa-pause') && this.paused && !this.ended) {
+                    playButtonIcon.classList.remove('fa-pause');
+                    playButtonIcon.classList.add('fa-play');
+                }
+            });
+        });
+
     </script>
 {% endblock %}
