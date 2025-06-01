@@ -9,6 +9,7 @@
 
 .checkbox-wrapper .item-checkbox { /* Targets .item-checkbox within .checkbox-wrapper */
     position: absolute;
+    margin-right: 15px;
     opacity: 0;
     cursor: pointer;
     height: 0;
@@ -18,8 +19,9 @@
 .checkbox-wrapper .checkmark {
     position: relative;
     display: inline-block; /* Changed from 'inherit' for consistency */
-    height: 22px;
-    width: 22px;
+    height: 18px;
+    width: 18px;
+    margin-right: 10px;
     background-color: #2d2d2d; /* From original .checkmark */
     border: 2px solid var(--text-muted); /* From original .checkmark */
     border-radius: 4px;
