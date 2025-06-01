@@ -10,10 +10,9 @@ class UserSelectionModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(username='testuser', password='password123')
-        cls.word = Word.objects.create(en='test word', ru='тестовое слово', user=cls.user) # Assuming Word needs a user
-        # If Word is in a Room, Chapter, Section, those need to be created too.
-        # For simplicity, assuming Word can be created standalone or user is optional for this test.
-        # Based on models.py, Word requires a Room. Let's create the hierarchy.
+        # Line causing IntegrityError removed:
+        # cls.word = Word.objects.create(en='test word', ru='тестовое слово', user=cls.user)
+        # Correct setup for word_in_room is below and sufficient for tests using it.
         cls.section = Section.objects.create(name='Test Section', user=cls.user)
         cls.chapter = Chapter.objects.create(name='Test Chapter', section=cls.section, user=cls.user)
         cls.room = Room.objects.create(name='Test Room', chapter=cls.chapter, user=cls.user)
@@ -45,8 +44,9 @@ class UpdateSelectionViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = User.objects.create_user(username='viewtestuser', password='password123')
         cls.section = Section.objects.create(name='Sample Section') # Admin section
-        cls.word = Word.objects.create(en='sample word', ru='пример слова', is_admin_word=True)
-        # Word needs a room, chapter, section
+        # Line causing IntegrityError removed:
+        # cls.word = Word.objects.create(en='sample word', ru='пример слова', is_admin_word=True)
+        # Correct setup for test_word is below and sufficient.
         admin_user = User.objects.create_user(username='admin', password='password')
         s = Section.objects.create(name="Admin Section")
         c = Chapter.objects.create(name="Admin Chapter", section=s)
