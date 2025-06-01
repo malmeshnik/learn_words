@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load contenttypes %}
 
 {% block title %}Список глав{% endblock %}
 
@@ -51,7 +50,14 @@
                 {% for chapter in user_chapters %}
                 <li class="room-item" data-room-id="{{ chapter.id }}">
                     <label class="custom-checkbox-label">
-                        <div class="checkbox-wrapper">
+                        <div class="item-content">
+                            <a href="{% url 'rooms' chapter.id %}">
+                                <span>{{ chapter.name }}</span>
+                            </a>
+                        </div>
+                    </label>
+                    <div class="room-actions">
+                        <label class="checkbox-wrapper">
                             <input
                                 type="checkbox"
                                 class="item-checkbox"
@@ -60,14 +66,7 @@
                                 {% if chapter.id in selected_chapter_ids %}checked{% endif %}
                             >
                             <span class="checkmark"></span>
-                        </div>
-                        <div class="item-content">
-                            <a href="{% url 'rooms' chapter.id %}">
-                                <span>{{ chapter.name }}</span>
-                            </a>
-                        </div>
-                    </label>
-                    <div class="room-actions">
+                        </label>
                         <button class="icon-btn edit-room" room-id="{{ chapter.id }}" room-name="{{ chapter.name }}">
                             <i class="fas fa-edit"></i>
                         </button>

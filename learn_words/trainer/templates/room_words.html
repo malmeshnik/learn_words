@@ -1,14 +1,13 @@
-<!DOCTYPE html>
-<html lang="uk" class="dark-theme">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Слова кімнати</title>
-    <link rel="stylesheet" href="/static/css/room_words.css">
-    <!-- Додаємо Font Awesome для кращих іконок -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}Слова кімнати{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="/static/css/room_words.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+{% endblock %}
+
+{% block content %}
     <!-- Спінер завантаження -->
     <div id="loadingSpinner">
         <div class="spinner"></div>
@@ -68,9 +67,6 @@
                     <div class="word-controls">
                         <button type="button" onclick="addSelectedWords()" class="primary-btn">
                             <i class="fas fa-plus-circle"></i> Додати обрані до мого списку
-                        </button>
-                        <button type="button" id="deleteSelectedWordsBtn" class="secondary-btn">
-                            <i class="fas fa-trash-alt"></i> Delete Selected Words
                         </button>
                         <button type="button" onclick="toggleSelectAll()" class="secondary-btn">
                             <i class="fas fa-check-double"></i> <span id="selectAllText">Вибрати все</span>
@@ -594,5 +590,4 @@
             document.getElementById('loadingSpinner').style.display = 'none';
         }
     </script>
-</body>
-</html>
+{% endblock %}
