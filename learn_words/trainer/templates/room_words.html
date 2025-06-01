@@ -26,6 +26,10 @@
                     <label for="editWordEn">Слово англійською</label>
                     <input type="text" id="editWordEn" placeholder="Введіть слово англійською">
                 </div>
+                <div class="input-group">
+                    <label for="editWordRu">Слово російською</label>
+                    <input type="text" id="editWordRu" placeholder="Введіть слово російською">
+                </div>
                 <button type="button" class="primary-btn" onclick="saveEditedWord()">
                     <i class="fas fa-save"></i> Зберегти
                 </button>
@@ -127,7 +131,7 @@
                                         </div>
                                     </label>
                                     <div class="word-actions">
-                                        <button type="button" class="icon-btn edit-word" onclick="editWord('{{ word.id }}', '{{ word.en }}')">
+                                        <button type="button" class="icon-btn edit-word" onclick="editWord('{{ word.id }}', '{{ word.en|escapejs }}', '{{ word.ru|escapejs }}')">
                                             <i class="fas fa-pen"></i>
                                         </button>
                                         <button type="button" class="icon-btn delete-word" onclick="deleteWord('{{ word.id }}')">
@@ -284,10 +288,11 @@
                          '&ru=' + encodeURIComponent(wordRu));
         }
 
-        function editWord(wordId, wordEn) {
+        function editWord(wordId, wordEn, wordRu) {
             // Заповнюємо форму даними слова
             document.getElementById('editWordId').value = wordId;
             document.getElementById('editWordEn').value = wordEn;
+            document.getElementById('editWordRu').value = wordRu;
             
             // Відкриваємо модальне вікно
             document.getElementById('editModal').style.display = 'block';
@@ -304,10 +309,11 @@
         function saveEditedWord() {
             const wordId = document.getElementById('editWordId').value;
             const wordEn = document.getElementById('editWordEn').value;
+            const wordRu = document.getElementById('editWordRu').value; // Read Russian word
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             
             if (wordEn.trim() === '') {
-                alert('Будь ласка, заповніть поле!');
+                alert('Будь ласка, заповніть поле англійського слова!'); // More specific alert
                 return;
             }
             
@@ -321,7 +327,8 @@
                 },
                 body: JSON.stringify({
                     wordId: wordId,
-                    en: wordEn
+                    en: wordEn,
+                    ru: wordRu // Include Russian word in payload
                 })
             })
             .then(res => res.json())
