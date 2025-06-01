@@ -30,26 +30,30 @@
 }
 
 .checkbox-wrapper .item-checkbox:checked ~ .checkmark {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
+    background-color: transparent;
+    border-color: var(--text-muted);
 }
 
 .checkbox-wrapper .item-checkbox:focus ~ .checkmark {
-    box-shadow: 0 0 0 2px rgba(79, 138, 255, 0.5);
+    box-shadow: 0 0 0 2px #777;
 }
 
 .checkbox-wrapper .checkmark:after {
     content: "";
     position: absolute;
     display: none;
-    left: 6px;
-    top: 2px;
+
     width: 5px;
     height: 10px;
-    border: solid white;
+    border: solid gray; /* Сіра галочка */
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
+
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg); /* Центрування */
 }
+
 
 .checkbox-wrapper .item-checkbox:checked ~ .checkmark:after {
     display: block;
