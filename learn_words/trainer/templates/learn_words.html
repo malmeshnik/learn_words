@@ -445,6 +445,8 @@
 
     <audio id="audioPlayer"></audio>
 
+    {{ words|json_script:"words-data" }}
+    {{ sentences|json_script:"sentences-data" }}
     <script>
         let isPaused = false;
         let currentIndex = 0; // для навігації по реченнях
@@ -454,8 +456,8 @@
         let stopCurrentTranslation = false;
         let stopCurrentItem = false;
 
-        const words = {{ words|safe }};
-        let sentences = {{ sentences|safe }};
+        const words = JSON.parse(document.getElementById('words-data').textContent);
+        let sentences = JSON.parse(document.getElementById('sentences-data').textContent);
         let index = 0;
         const audioPlayer = document.getElementById('audioPlayer');
 
