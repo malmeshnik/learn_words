@@ -175,3 +175,5 @@ audio/
 
 # PyPI configuration file
 .pypirc
+db.sqlite3
+word_recordings
