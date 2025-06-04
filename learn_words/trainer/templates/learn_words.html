@@ -1099,6 +1099,8 @@
                 saveSettingsButton.addEventListener('click', async () => {
                     const currentSettings = getDelaySettings();
                     try {
+                        // Add this line to update sessionStorage before saving and reloading
+                        sessionStorage.setItem('wordLearningSettings', JSON.stringify(currentSettings));
                         await saveUserSettings(currentSettings, true);
                         // Page will reload if saveUserSettings is successful due to 'true' argument
                     } catch (error) {
