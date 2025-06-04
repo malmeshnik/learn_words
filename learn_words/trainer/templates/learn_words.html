@@ -383,8 +383,35 @@
                             <input type="checkbox" id="playTranslationFirst">
                             <span>🔄 Спочатку відтворювати переклад</span>
                         </div>
+                        <!-- Old checkbox removed/commented out below -->
+                        <!--
+                        <div class="checkbox-label">
+                            <input type="checkbox" id="useOwnRecordings" name="useOwnRecordings" {% if user_settings.use_own_recordings_if_available %}checked{% endif %}>
+                            <span>🎤 Використовувати мої записи (якщо є)</span>
+                        </div>
+                         -->
+                    </div>
+                    <div> <!-- New div container for voice preference settings -->
+                        <label>🔊 Налаштування голосу:</label>
+                        <div class="setting-item">
+                            <label><input type="radio" name="voicePreferenceType" value="tts" {% if user_settings.voice_preference_type == 'tts' %}checked{% endif %}> Голос робота</label><br>
+                            <label><input type="radio" name="voicePreferenceType" value="own" {% if user_settings.voice_preference_type == 'own' %}checked{% endif %}> Використовувати свій голос</label><br>
+                            <label><input type="radio" name="voicePreferenceType" value="other_user" {% if user_settings.voice_preference_type == 'other_user' %}checked{% endif %}> Вибрати голос користувача</label>
+                        </div>
+                        <div class="setting-item" id="otherUserSelectionContainer" style="margin-top: 10px; display: {% if user_settings.voice_preference_type == 'other_user' %}block{% else %}none{% endif %};">
+                            <label for="preferredOtherUserId">Оберіть користувача:</label>
+                            <select id="preferredOtherUserId" name="preferredOtherUserId" style="width: 100%; padding: 8px; background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
+                                <option value="">-- Вибрати користувача --</option>
+                                {% for recordist in recordist_users %}
+                                    <option value="{{ recordist.id }}" {% if user_settings.preferred_other_user_id == recordist.id %}selected{% endif %}>
+                                        {{ recordist.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
+                <button id="saveSettingsBtn" style="margin-top: 10px; margin-bottom: 10px; background-color: var(--accent-secondary); color: white;">Зберегти налаштування</button>
             </div>
         </div>
 
@@ -419,6 +446,8 @@
 
     <audio id="audioPlayer"></audio>
 
+    {{ words|json_script:"words-data" }}
+    {{ sentences|json_script:"sentences-data" }}
     <script>
         let isPaused = false;
         let currentIndex = 0; // для навігації по реченнях
@@ -428,8 +457,8 @@
         let stopCurrentTranslation = false;
         let stopCurrentItem = false;
 
-        const words = {{ words|safe }};
-        let sentences = {{ sentences|safe }};
+        const words = JSON.parse(document.getElementById('words-data').textContent);
+        let sentences = JSON.parse(document.getElementById('sentences-data').textContent);
         let index = 0;
         const audioPlayer = document.getElementById('audioPlayer');
 
@@ -515,13 +544,23 @@
             
             await waitWhilePaused();
             
-            // Підготовка шляхів до аудіо
-            const enAudioPath = isWord 
-                ? `/media/audio/en/${item.id}.mp3` 
-                : `/${item.path_to_en}`;
-            const ruAudioPath = isWord 
-                ? `/media/audio/ru/${item.id}.mp3` 
-                : `/${item.path_to_ru}`;
+            let enAudioPath, ruAudioPath;
+
+            if (isWord) {
+                // For words, prioritize active_recording_url if available
+                if (item.active_recording_url) {
+                    enAudioPath = item.active_recording_url;
+                    console.log(`Using active recording (user/other) for word ${item.id}: ${enAudioPath}`);
+                } else {
+                    enAudioPath = item.tts_en_url;
+                    console.log(`Using TTS EN for word ${item.id}: ${enAudioPath}`);
+                }
+                ruAudioPath = item.tts_ru_url; // Russian is always TTS
+            } else {
+                // For sentences, paths are directly from the item (assumed to be TTS)
+                enAudioPath = `/${item.path_to_en}`;
+                ruAudioPath = `/${item.path_to_ru}`;
+            }
             
             // Визначення текстових полів
             const originalText = isWord ? item.en : item.template;
@@ -821,41 +860,59 @@
         }
 
         // Збереження налаштувань користувача на сервері
-        async function saveUserSettings() {
-            const settings = getDelaySettings();
+        async function saveUserSettings(settingsData, shouldReload = false) {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            fetch("{% url 'save_user_settings' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify({ user_settings: settings }),
-            })
-            .then(res => res.json())  // додано виклик функції
-            .then(data => {
-                console.log('Settings saved:', data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            return new Promise((resolve, reject) => {
+                fetch("{% url 'save_user_settings' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ user_settings: settingsData }),
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        // Try to parse error response if server sends JSON error
+                        return res.json().then(errData => {
+                            reject(errData.error || `HTTP error! status: ${res.status}`);
+                        }).catch(() => {
+                            // Fallback if error response is not JSON
+                            reject(`HTTP error! status: ${res.status}`);
+                        });
+                    } else {
+                        return res.json();
+                    }
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        console.log('Settings saved:', data);
+                        if (shouldReload) {
+                            window.location.reload();
+                        }
+                        resolve(data); // Resolve on success
+                    } else {
+                        console.error('Failed to save settings on server:', data ? data.error : 'Unknown error');
+                        reject(data ? data.error : 'Failed to save settings'); // Reject if server says not success
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving settings:', error);
+                    reject(error); // Reject on network or other errors
+                });
             });
-        }        
+        }
+
+        async function initiateLearningProcess(settings) { // Renamed from startLearning, takes settings object
+            // const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked; // Use settings.enableSentenceAudio
+            // const enableWordAudio = document.getElementById('enableWordAudio').checked; // Use settings.enableWordAudio
             
-        // Початок навчання
-        async function startLearning() {
-            const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
-            const enableWordAudio = document.getElementById('enableWordAudio').checked;
-            const settings = getDelaySettings();
-            
-            console.log('lessonRepeatCount:', settings.lessonRepeatCount);
+            console.log('lessonRepeatCount from initiateLearningProcess:', settings.lessonRepeatCount);
             
             currentIndex = 0;
             index = 0;
 
-            saveSettingsToSession();
-            saveUserSettings();
-
+            // UI changes
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('settingsBlock').style.display = 'none';
             document.getElementById('sentenceControls').style.display = 'flex';
@@ -863,13 +920,16 @@
             document.getElementById('showTranslation').style.display = 'inline-flex';
 
             // Підготовка масиву речень відповідно до налаштувань
-            adjustSentencesArray();
+            // adjustSentencesArray(); // Ensure this uses settings if it reads from DOM, or pass settings.sentenceValue
+            // For now, assuming adjustSentencesArray uses DOM values which are already set by getDelaySettings
+             adjustSentencesArray();
+
 
             for (let i = 0; i < settings.lessonRepeatCount; i++) {
                 currentIndex = 0;
                 index = 0;
 
-                if (enableWordAudio) {
+                if (settings.enableWordAudio) {
                     document.getElementById("backSentenceButton").style.display = 'none';
                     document.getElementById('BackWordButton').style.display = 'inline-flex';
                     document.getElementById('prevSentence').style.display = 'none';
@@ -880,7 +940,7 @@
                     await playingWords(); // Очікуємо завершення слів
                 }
 
-                if (enableSentenceAudio) {
+                if (settings.enableSentenceAudio) {
                     document.getElementById("BackWordButton").style.display = 'none';
                     document.getElementById("backSentenceButton").style.display = 'inline-flex';
                     document.getElementById('prevSentence').style.display = 'flex';
@@ -898,6 +958,19 @@
             document.getElementById('mainMenuButton').style.display = 'flex';
         }
 
+        async function applyAndStartLearning() {
+            const currentSettings = getDelaySettings();
+            saveSettingsToSession(); // This function calls getDelaySettings() internally
+
+            try {
+                await saveUserSettings(currentSettings, false); // Save settings without reload
+                console.log("Settings saved successfully via applyAndStartLearning. Proceeding to learning.");
+                initiateLearningProcess(currentSettings);
+            } catch (error) {
+                console.error("Failed to save settings via applyAndStartLearning. Learning not started.", error);
+                alert("Failed to save settings. Please try again. Error: " + (error.message || error));
+            }
+        }
 
         // Отримання налаштувань з полів введення
         function getDelaySettings() {
@@ -911,7 +984,10 @@
                 enableWordAudio: document.getElementById('enableWordAudio').checked,
                 enableSentenceAudio: document.getElementById('enableSentenceAudio').checked,
                 playTranslationFirst: document.getElementById('playTranslationFirst').checked,
-                sentenceValue: parseInt(document.getElementById('sentenceValue').value) || 15
+                sentenceValue: parseInt(document.getElementById('sentenceValue').value) || 15,
+                // useOwnRecordings: document.getElementById('useOwnRecordings').checked, // Old field
+                voicePreferenceType: document.querySelector('input[name="voicePreferenceType"]:checked')?.value || 'tts',
+                preferredOtherUserId: document.getElementById('preferredOtherUserId').value
             };
         }
 
@@ -935,6 +1011,20 @@
                 document.getElementById('enableWordAudio').checked = settings.enableWordAudio || false;
                 document.getElementById('playTranslationFirst').checked = settings.playTranslationFirst || false;
                 document.getElementById('sentenceValue').value = settings.sentenceValue || 15;
+                // document.getElementById('useOwnRecordings').checked = settings.useOwnRecordings || false; // Old field
+
+                // Restore new voice preference UI
+                const voicePref = settings.voicePreferenceType || 'tts';
+                document.querySelector(`input[name="voicePreferenceType"][value="${voicePref}"]`).checked = true;
+
+                const otherUserSelectContainer = document.getElementById('otherUserSelectionContainer');
+                if (voicePref === 'other_user') {
+                    otherUserSelectContainer.style.display = 'block';
+                    document.getElementById('preferredOtherUserId').value = settings.preferredOtherUserId || "";
+                } else {
+                    otherUserSelectContainer.style.display = 'none';
+                    document.getElementById('preferredOtherUserId').value = ""; // Clear selection
+                }
             }
         }
 
@@ -990,12 +1080,37 @@
             loadSettingsFromSession();
             // Приховуємо елементи керування на початку
             document.getElementById('sentenceControls').style.display = 'none';
+
+            // Event listener for voicePreferenceType radio buttons
+            document.querySelectorAll('input[name="voicePreferenceType"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const otherUserSelectContainer = document.getElementById('otherUserSelectionContainer');
+                    if (this.value === 'other_user') {
+                        otherUserSelectContainer.style.display = 'block';
+                    } else {
+                        otherUserSelectContainer.style.display = 'none';
+                        document.getElementById('preferredOtherUserId').value = ""; // Clear selection
+                    }
+                });
+            });
+
+            const saveSettingsButton = document.getElementById('saveSettingsBtn');
+            if (saveSettingsButton) {
+                saveSettingsButton.addEventListener('click', async () => {
+                    const currentSettings = getDelaySettings();
+                    try {
+                        await saveUserSettings(currentSettings, true);
+                        // Page will reload if saveUserSettings is successful due to 'true' argument
+                    } catch (error) {
+                        console.error("Failed to save settings with reload:", error);
+                        alert("Error saving settings: " + (error.message || error));
+                    }
+                });
+            }
         });
 
         // Обробник кнопки початку навчання
-        document.getElementById('startBtn').addEventListener('click', () => {
-            startLearning();
-        });
+        document.getElementById('startBtn').addEventListener('click', applyAndStartLearning);
     </script>
 </body>
 </html>

@@ -3,6 +3,11 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
+class VoicePreferenceType(models.TextChoices):
+    TTS = 'tts', 'Default TTS'
+    OWN = 'own', 'Own Recordings'
+    OTHER_USER = 'other_user', 'Other User Recording'
+
 class UserSettings(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, blank=False, null=False)
     repeat_count = models.SmallIntegerField(default=1)
@@ -11,6 +16,21 @@ class UserSettings(models.Model):
     hide_translation = models.BooleanField(default=False)
     playback_speed = models.FloatField(default=1, null=False, blank=False)
     lesson_repeat_count = models.SmallIntegerField(default=1)
+    use_own_recordings_if_available = models.BooleanField(default=False) # Will be deprecated by voice_preference_type
+
+    voice_preference_type = models.CharField(
+        max_length=10,
+        choices=VoicePreferenceType.choices,
+        default=VoicePreferenceType.TTS
+    )
+    preferred_other_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='preferred_by_users',
+        help_text="The user whose voice recordings are preferred, if voice_preference_type is 'other_user'."
+    )
 
 class Section(models.Model):
     name = models.CharField(max_length=255)
