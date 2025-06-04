@@ -392,16 +392,16 @@
                          -->
                     </div>
                     <div> <!-- New div container for voice preference settings -->
-                        <label>🔊 Voice Preference:</label>
+                        <label>🔊 Налаштування голосу:</label>
                         <div class="setting-item">
-                            <label><input type="radio" name="voicePreferenceType" value="tts" {% if user_settings.voice_preference_type == 'tts' %}checked{% endif %}> Default Robot Voice</label><br>
-                            <label><input type="radio" name="voicePreferenceType" value="own" {% if user_settings.voice_preference_type == 'own' %}checked{% endif %}> My Own Recordings</label><br>
-                            <label><input type="radio" name="voicePreferenceType" value="other_user" {% if user_settings.voice_preference_type == 'other_user' %}checked{% endif %}> Another User's Voice</label>
+                            <label><input type="radio" name="voicePreferenceType" value="tts" {% if user_settings.voice_preference_type == 'tts' %}checked{% endif %}> Голос робота</label><br>
+                            <label><input type="radio" name="voicePreferenceType" value="own" {% if user_settings.voice_preference_type == 'own' %}checked{% endif %}> Використовувати свій голос</label><br>
+                            <label><input type="radio" name="voicePreferenceType" value="other_user" {% if user_settings.voice_preference_type == 'other_user' %}checked{% endif %}> Вибрати голос користувача</label>
                         </div>
                         <div class="setting-item" id="otherUserSelectionContainer" style="margin-top: 10px; display: {% if user_settings.voice_preference_type == 'other_user' %}block{% else %}none{% endif %};">
-                            <label for="preferredOtherUserId">Select User:</label>
+                            <label for="preferredOtherUserId">Оберіть користувача:</label>
                             <select id="preferredOtherUserId" name="preferredOtherUserId" style="width: 100%; padding: 8px; background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
-                                <option value="">-- Select User --</option>
+                                <option value="">-- Вибрати користувача --</option>
                                 {% for recordist in recordist_users %}
                                     <option value="{{ recordist.id }}" {% if user_settings.preferred_other_user_id == recordist.id %}selected{% endif %}>
                                         {{ recordist.username }}
