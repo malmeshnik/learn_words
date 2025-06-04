@@ -383,6 +383,32 @@
                             <input type="checkbox" id="playTranslationFirst">
                             <span>🔄 Спочатку відтворювати переклад</span>
                         </div>
+                        <!-- Old checkbox removed/commented out below -->
+                        <!--
+                        <div class="checkbox-label">
+                            <input type="checkbox" id="useOwnRecordings" name="useOwnRecordings" {% if user_settings.use_own_recordings_if_available %}checked{% endif %}>
+                            <span>🎤 Використовувати мої записи (якщо є)</span>
+                        </div>
+                         -->
+                    </div>
+                    <div> <!-- New div container for voice preference settings -->
+                        <label>🔊 Voice Preference:</label>
+                        <div class="setting-item">
+                            <label><input type="radio" name="voicePreferenceType" value="tts" {% if user_settings.voice_preference_type == 'tts' %}checked{% endif %}> Default Robot Voice</label><br>
+                            <label><input type="radio" name="voicePreferenceType" value="own" {% if user_settings.voice_preference_type == 'own' %}checked{% endif %}> My Own Recordings</label><br>
+                            <label><input type="radio" name="voicePreferenceType" value="other_user" {% if user_settings.voice_preference_type == 'other_user' %}checked{% endif %}> Another User's Voice</label>
+                        </div>
+                        <div class="setting-item" id="otherUserSelectionContainer" style="margin-top: 10px; display: {% if user_settings.voice_preference_type == 'other_user' %}block{% else %}none{% endif %};">
+                            <label for="preferredOtherUserId">Select User:</label>
+                            <select id="preferredOtherUserId" name="preferredOtherUserId" style="width: 100%; padding: 8px; background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
+                                <option value="">-- Select User --</option>
+                                {% for recordist in recordist_users %}
+                                    <option value="{{ recordist.id }}" {% if user_settings.preferred_other_user_id == recordist.id %}selected{% endif %}>
+                                        {{ recordist.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -515,13 +541,23 @@
             
             await waitWhilePaused();
             
-            // Підготовка шляхів до аудіо
-            const enAudioPath = isWord 
-                ? `/media/audio/en/${item.id}.mp3` 
-                : `/${item.path_to_en}`;
-            const ruAudioPath = isWord 
-                ? `/media/audio/ru/${item.id}.mp3` 
-                : `/${item.path_to_ru}`;
+            let enAudioPath, ruAudioPath;
+
+            if (isWord) {
+                // For words, prioritize active_recording_url if available
+                if (item.active_recording_url) {
+                    enAudioPath = item.active_recording_url;
+                    console.log(`Using active recording (user/other) for word ${item.id}: ${enAudioPath}`);
+                } else {
+                    enAudioPath = item.tts_en_url;
+                    console.log(`Using TTS EN for word ${item.id}: ${enAudioPath}`);
+                }
+                ruAudioPath = item.tts_ru_url; // Russian is always TTS
+            } else {
+                // For sentences, paths are directly from the item (assumed to be TTS)
+                enAudioPath = `/${item.path_to_en}`;
+                ruAudioPath = `/${item.path_to_ru}`;
+            }
             
             // Визначення текстових полів
             const originalText = isWord ? item.en : item.template;
@@ -911,7 +947,10 @@
                 enableWordAudio: document.getElementById('enableWordAudio').checked,
                 enableSentenceAudio: document.getElementById('enableSentenceAudio').checked,
                 playTranslationFirst: document.getElementById('playTranslationFirst').checked,
-                sentenceValue: parseInt(document.getElementById('sentenceValue').value) || 15
+                sentenceValue: parseInt(document.getElementById('sentenceValue').value) || 15,
+                // useOwnRecordings: document.getElementById('useOwnRecordings').checked, // Old field
+                voicePreferenceType: document.querySelector('input[name="voicePreferenceType"]:checked')?.value || 'tts',
+                preferredOtherUserId: document.getElementById('preferredOtherUserId').value
             };
         }
 
@@ -935,6 +974,20 @@
                 document.getElementById('enableWordAudio').checked = settings.enableWordAudio || false;
                 document.getElementById('playTranslationFirst').checked = settings.playTranslationFirst || false;
                 document.getElementById('sentenceValue').value = settings.sentenceValue || 15;
+                // document.getElementById('useOwnRecordings').checked = settings.useOwnRecordings || false; // Old field
+
+                // Restore new voice preference UI
+                const voicePref = settings.voicePreferenceType || 'tts';
+                document.querySelector(`input[name="voicePreferenceType"][value="${voicePref}"]`).checked = true;
+
+                const otherUserSelectContainer = document.getElementById('otherUserSelectionContainer');
+                if (voicePref === 'other_user') {
+                    otherUserSelectContainer.style.display = 'block';
+                    document.getElementById('preferredOtherUserId').value = settings.preferredOtherUserId || "";
+                } else {
+                    otherUserSelectContainer.style.display = 'none';
+                    document.getElementById('preferredOtherUserId').value = ""; // Clear selection
+                }
             }
         }
 
@@ -990,6 +1043,19 @@
             loadSettingsFromSession();
             // Приховуємо елементи керування на початку
             document.getElementById('sentenceControls').style.display = 'none';
+
+            // Event listener for voicePreferenceType radio buttons
+            document.querySelectorAll('input[name="voicePreferenceType"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const otherUserSelectContainer = document.getElementById('otherUserSelectionContainer');
+                    if (this.value === 'other_user') {
+                        otherUserSelectContainer.style.display = 'block';
+                    } else {
+                        otherUserSelectContainer.style.display = 'none';
+                        document.getElementById('preferredOtherUserId').value = ""; // Clear selection
+                    }
+                });
+            });
         });
 
         // Обробник кнопки початку навчання

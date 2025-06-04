@@ -1,9 +1,12 @@
 import json
+import json # Ensured
+import os # Ensured
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from .models import Section, Chapter, Room, Word, UserSelection, UserSettings
+from django.core.files.uploadedfile import SimpleUploadedFile # Ensured
+from .models import Section, Chapter, Room, Word, UserSelection, UserSettings, WordRecording # Ensured WordRecording
 
 class UserSelectionModelTests(TestCase):
 
@@ -321,6 +324,9 @@ class VoiceRecordingTests(TestCase):
         cls.room = Room.objects.create(name='Test Rec Room', chapter=cls.chapter)
         cls.word = Word.objects.create(room=cls.room, en='hello_rec', ru='привет_rec')
         cls.word_no_recording = Word.objects.create(room=cls.room, en='world_rec', ru='мир_rec')
+        cls.other_recordist = User.objects.create_user(username='other_recordist_user', password='password123')
+        cls.word2 = Word.objects.create(room=cls.room, en='bye_rec', ru='пока_rec')
+
 
         # URL for upload view
         cls.upload_url = reverse('upload_word_recording', args=[cls.word.id])
@@ -451,17 +457,261 @@ class VoiceRecordingTests(TestCase):
         self.assertIsNone(word_without_rec_in_context.user_recording_url)
 
         if hasattr(user_recording.recording, 'path'):
-            import os
+            # import os # Already imported at top
             if os.path.exists(user_recording.recording.path):
                 os.remove(user_recording.recording.path)
         user_recording.delete()
 
-# Ensure all models used in tests are imported at the top of the file.
-# from .models import Word, Room, WordRecording, Chapter, Section, UserSettings
-# from django.core.files.uploadedfile import SimpleUploadedFile
-# from django.test import TestCase, Client
-# from django.urls import reverse
-# from django.contrib.auth.models import User
-# from django.contrib.contenttypes.models import ContentType
-# import json
-# import os
+    def test_save_user_settings_use_own_recordings(self):
+        self.client.login(username=self.user.username, password='password123')
+
+        # Test saving True
+        response_true = self.client.post(
+            reverse('save_user_settings'),
+            json.dumps({
+                'user_settings': {
+                    'useOwnRecordings': True,
+                    'repetitions': 1,
+                    'pauseBetween': 1000,
+                    'delayBeforeTranslation': 500,
+                    'hide_translation': False,
+                    'playbackSpeed': 1,
+                    'lessonRepeatCount': 1
+                }
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response_true.status_code, 200)
+        self.assertTrue(response_true.json()['success'])
+        user_settings = UserSettings.objects.get(user=self.user)
+        self.assertTrue(user_settings.use_own_recordings_if_available)
+
+        # Test saving False
+        response_false = self.client.post(
+            reverse('save_user_settings'),
+            json.dumps({
+                'user_settings': {
+                    'useOwnRecordings': False,
+                    'repetitions': 1,
+                    'pauseBetween': 1000,
+                    'delayBeforeTranslation': 500,
+                    'hide_translation': False,
+                    'playbackSpeed': 1,
+                    'lessonRepeatCount': 1
+                }
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response_false.status_code, 200)
+        self.assertTrue(response_false.json()['success'])
+        user_settings = UserSettings.objects.get(user=self.user) # Re-fetch
+        self.assertFalse(user_settings.use_own_recordings_if_available)
+
+    def test_learn_words_view_context_audio_urls(self):
+        self.client.login(username=self.user.username, password='password123')
+
+        # Scenario 1: User prefers own recordings, and a recording exists
+        user_settings, _ = UserSettings.objects.update_or_create(
+            user=self.user,
+            defaults={'use_own_recordings_if_available': True}
+        )
+
+        audio_content = b'my own voice'
+        audio_file = SimpleUploadedFile("my_audio.webm", audio_content, content_type="audio/webm")
+        my_recording = WordRecording.objects.create(
+            user=self.user,
+            word=self.word,
+            recording=audio_file
+        )
+
+        session = self.client.session
+        session['selected_words'] = [self.word.id]
+        session['is_random'] = False
+        session['selected_categories'] = {}
+        session['is_random_order'] = {}
+        session.save()
+
+        response = self.client.get(reverse('learn_words'))
+        self.assertEqual(response.status_code, 200)
+
+        result_words_context = response.context.get('words')
+        self.assertIsNotNone(result_words_context)
+        self.assertEqual(len(result_words_context), 1)
+
+        word_data = result_words_context[0]
+        self.assertEqual(word_data['id'], self.word.id)
+        self.assertEqual(word_data['user_recording_url'], my_recording.recording.url)
+        self.assertTrue(word_data['tts_en_url'])
+        self.assertTrue(word_data['tts_ru_url'])
+
+        if hasattr(my_recording.recording, 'path'):
+            # import os # Already imported
+            if os.path.exists(my_recording.recording.path):
+                os.remove(my_recording.recording.path)
+        my_recording.delete()
+
+        # Scenario 2: User prefers own recordings, but NO recording exists for the word
+        session.save()
+        response_no_rec = self.client.get(reverse('learn_words'))
+        self.assertEqual(response_no_rec.status_code, 200)
+        word_data_no_rec = response_no_rec.context['words'][0]
+        self.assertEqual(word_data_no_rec['id'], self.word.id)
+        self.assertIsNone(word_data_no_rec['user_recording_url'])
+        self.assertTrue(word_data_no_rec['tts_en_url'])
+        self.assertTrue(word_data_no_rec['tts_ru_url'])
+
+        # Scenario 3: User does NOT prefer own recordings
+        user_settings.use_own_recordings_if_available = False
+        user_settings.save()
+        my_ignored_recording = WordRecording.objects.create(
+            user=self.user, word=self.word, recording=SimpleUploadedFile("ignored.webm", b"ignored", "audio/webm")
+        )
+        session.save()
+        response_pref_false = self.client.get(reverse('learn_words'))
+        self.assertEqual(response_pref_false.status_code, 200)
+        word_data_pref_false = response_pref_false.context['words'][0]
+        self.assertEqual(word_data_pref_false['id'], self.word.id)
+        self.assertIsNone(word_data_pref_false['user_recording_url'])
+        self.assertTrue(word_data_pref_false['tts_en_url'])
+        self.assertTrue(word_data_pref_false['tts_ru_url'])
+
+        if hasattr(my_ignored_recording.recording, 'path'):
+            # import os # Already imported
+            if os.path.exists(my_ignored_recording.recording.path):
+                os.remove(my_ignored_recording.recording.path)
+        my_ignored_recording.delete()
+
+    def test_save_user_settings_full_voice_preferences(self):
+        # Create another user to be the 'preferred_other_user'
+        other_user_for_pref = User.objects.create_user(username='otherprefrec', password='password123')
+        self.client.login(username=self.user.username, password='password123')
+
+        # Scenario 1: Preferring another user
+        payload_other_user = {
+            'user_settings': {
+                'voicePreferenceType': 'other_user',
+                'preferredOtherUserId': other_user_for_pref.id,
+                'repetitions': 1, 'pauseBetween': 1000, 'delayBeforeTranslation': 500,
+                'hide_translation': False, 'playbackSpeed': 1, 'lessonRepeatCount': 1
+            }
+        }
+        response = self.client.post(reverse('save_user_settings'), json.dumps(payload_other_user), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+
+        settings = UserSettings.objects.get(user=self.user)
+        self.assertEqual(settings.voice_preference_type, 'other_user')
+        self.assertEqual(settings.preferred_other_user, other_user_for_pref)
+        self.assertFalse(settings.use_own_recordings_if_available)
+
+        # Scenario 2: Preferring own recordings
+        payload_own = {
+            'user_settings': {
+                'voicePreferenceType': 'own',
+                'preferredOtherUserId': None,
+                'repetitions': 1, 'pauseBetween': 1000, 'delayBeforeTranslation': 500,
+                'hide_translation': False, 'playbackSpeed': 1, 'lessonRepeatCount': 1
+            }
+        }
+        response_own = self.client.post(reverse('save_user_settings'), json.dumps(payload_own), content_type='application/json')
+        self.assertEqual(response_own.status_code, 200)
+        settings.refresh_from_db()
+        self.assertEqual(settings.voice_preference_type, 'own')
+        self.assertIsNone(settings.preferred_other_user)
+        self.assertTrue(settings.use_own_recordings_if_available)
+
+        # Scenario 3: Preferring TTS
+        payload_tts = {
+            'user_settings': {
+                'voicePreferenceType': 'tts',
+                'preferredOtherUserId': other_user_for_pref.id,
+                'repetitions': 1, 'pauseBetween': 1000, 'delayBeforeTranslation': 500,
+                'hide_translation': False, 'playbackSpeed': 1, 'lessonRepeatCount': 1
+            }
+        }
+        response_tts = self.client.post(reverse('save_user_settings'), json.dumps(payload_tts), content_type='application/json')
+        self.assertEqual(response_tts.status_code, 200)
+        settings.refresh_from_db()
+        self.assertEqual(settings.voice_preference_type, 'tts')
+        self.assertIsNone(settings.preferred_other_user)
+        self.assertFalse(settings.use_own_recordings_if_available)
+
+        other_user_for_pref.delete()
+
+    def test_learn_words_context_community_voice_selection(self):
+        self.client.login(username=self.user.username, password='password123')
+
+        own_rec_content = b'my voice for hello'
+        own_rec_file = SimpleUploadedFile("own_hello.webm", own_rec_content, "audio/webm")
+        own_recording = WordRecording.objects.create(user=self.user, word=self.word, recording=own_rec_file)
+
+        other_rec_content_hello = b'other voice for hello'
+        other_rec_file_hello = SimpleUploadedFile("other_hello.webm", other_rec_content_hello, "audio/webm")
+        other_user_recording_hello = WordRecording.objects.create(user=self.other_recordist, word=self.word, recording=other_rec_file_hello)
+
+        other_rec_content_bye = b'other voice for bye'
+        other_rec_file_bye = SimpleUploadedFile("other_bye.webm", other_rec_content_bye, "audio/webm")
+        other_user_recording_bye = WordRecording.objects.create(user=self.other_recordist, word=self.word2, recording=other_rec_file_bye)
+
+        session = self.client.session
+        session['selected_words'] = [self.word.id, self.word2.id]
+        session['is_random'] = False
+        session['selected_categories'] = {}
+        session['is_random_order'] = {}
+        session.save()
+
+        # Scenario 1: Prefer 'other_user' (self.other_recordist)
+        settings, _ = UserSettings.objects.update_or_create(
+            user=self.user,
+            defaults={
+                'voice_preference_type': 'other_user',
+                'preferred_other_user': self.other_recordist
+            }
+        )
+        response = self.client.get(reverse('learn_words'))
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn('recordist_users', response.context)
+        recordist_ids_in_context = [u['id'] for u in response.context['recordist_users']]
+        self.assertIn(self.other_recordist.id, recordist_ids_in_context)
+        self.assertNotIn(self.user.id, recordist_ids_in_context)
+
+        words_ctx = {w['id']: w for w in response.context['words']}
+        self.assertEqual(words_ctx[self.word.id]['active_recording_url'], other_user_recording_hello.recording.url)
+        self.assertEqual(words_ctx[self.word2.id]['active_recording_url'], other_user_recording_bye.recording.url)
+
+        # Scenario 2: Prefer 'own'
+        settings.voice_preference_type = 'own'
+        settings.preferred_other_user = None
+        settings.save()
+        response_own = self.client.get(reverse('learn_words'))
+        words_ctx_own = {w['id']: w for w in response_own.context['words']}
+        self.assertEqual(words_ctx_own[self.word.id]['active_recording_url'], own_recording.recording.url)
+        self.assertIsNone(words_ctx_own[self.word2.id]['active_recording_url'])
+
+        # Scenario 3: Prefer 'tts'
+        settings.voice_preference_type = 'tts'
+        settings.save()
+        response_tts = self.client.get(reverse('learn_words'))
+        words_ctx_tts = {w['id']: w for w in response_tts.context['words']}
+        self.assertIsNone(words_ctx_tts[self.word.id]['active_recording_url'])
+        self.assertIsNone(words_ctx_tts[self.word2.id]['active_recording_url'])
+
+        # Scenario 4: Prefer 'other_user', but that user has no recording for self.word2
+        # For this, delete other_user_recording_bye and re-test scenario 1 for word2
+        if hasattr(other_user_recording_bye.recording, 'path') and os.path.exists(other_user_recording_bye.recording.path):
+             os.remove(other_user_recording_bye.recording.path)
+        other_user_recording_bye.delete()
+
+        settings.voice_preference_type = 'other_user'
+        settings.preferred_other_user = self.other_recordist # Ensure it's still set
+        settings.save()
+        response_other_no_rec_for_word2 = self.client.get(reverse('learn_words'))
+        words_ctx_other_no_rec_for_word2 = {w['id']: w for w in response_other_no_rec_for_word2.context['words']}
+        self.assertEqual(words_ctx_other_no_rec_for_word2[self.word.id]['active_recording_url'], other_user_recording_hello.recording.url)
+        self.assertIsNone(words_ctx_other_no_rec_for_word2[self.word2.id]['active_recording_url'])
+
+        if hasattr(own_recording.recording, 'path') and os.path.exists(own_recording.recording.path): os.remove(own_recording.recording.path)
+        own_recording.delete()
+        if hasattr(other_user_recording_hello.recording, 'path') and os.path.exists(other_user_recording_hello.recording.path): os.remove(other_user_recording_hello.recording.path)
+        other_user_recording_hello.delete()

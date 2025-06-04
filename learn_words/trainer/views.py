@@ -18,9 +18,11 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from gtts import gTTS
 
+from django.conf import settings
+# User is already imported from django.contrib.auth.models
 from .models import (N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, Chapter, Room,
                      Section, SentencesTranslate, SentenceTemplate, UserSelection,
-                     UserSettings, Word, WordRecording)
+                     UserSettings, Word, WordRecording, VoicePreferenceType) # VoicePreferenceType added
 
 
 @login_required(login_url="/login/")
@@ -650,14 +652,14 @@ def learn_words(request):
     random_order = request.session.get("is_random_order")
     print(f"random_order: {random_order}")
     selected_words_by_category = request.session.get("selected_categories", {})
-    user_settings = UserSettings.objects.filter(user=request.user).first()
+    user_settings, _ = UserSettings.objects.get_or_create(user=request.user) # Changed to get_or_create
 
     words = Word.objects.filter(id__in=selected_word_ids)
     sentences = SentenceTemplate.objects.all()
 
-    if not user_settings:
-        user_settings = save_user_settings(request)
-        user_settings = UserSettings.objects.filter(user=request.user).first()
+    # Fetch recordist users
+    recordist_user_ids = WordRecording.objects.exclude(user=request.user).values_list('user_id', flat=True).distinct()
+    recordist_users = User.objects.filter(id__in=recordist_user_ids).values('id', 'username').order_by('username')
 
     # Загрузка слов по категориям
     word_dict = {}
@@ -691,16 +693,50 @@ def learn_words(request):
         random.shuffle(word_list)
         print("Слова перемішані")
 
-    for word in word_list:
-        generate_mp3_if_needed(word.id, word.en, "en", "en")
-        generate_mp3_if_needed(word.id, word.ru, "ru", "ru")
-        result_words.append(
-            {
-                "id": word.id,
-                "en": word.en,
-                "ru": word.ru,
-            }
+    # Prepare recording maps based on user settings
+    user_own_recordings_map = {}
+    other_user_recordings_map = {}
+    word_ids_for_recordings = [w.id for w in word_list]
+
+    if user_settings.voice_preference_type == VoicePreferenceType.OWN:
+        recordings = WordRecording.objects.filter(
+            user=request.user,
+            word_id__in=word_ids_for_recordings
         )
+        for rec in recordings:
+            if rec.recording:
+                user_own_recordings_map[rec.word_id] = rec.recording.url
+    elif user_settings.voice_preference_type == VoicePreferenceType.OTHER_USER and user_settings.preferred_other_user_id:
+        recordings = WordRecording.objects.filter(
+            user_id=user_settings.preferred_other_user_id,
+            word_id__in=word_ids_for_recordings
+        )
+        for rec in recordings:
+            if rec.recording:
+                other_user_recordings_map[rec.word_id] = rec.recording.url
+
+    for word in word_list:
+        generate_mp3_if_needed(word.id, word.en, "en", "en") # Ensures TTS file exists
+        generate_mp3_if_needed(word.id, word.ru, "ru", "ru") # Ensures TTS file exists
+
+        tts_en_url = f"{settings.MEDIA_URL}audio/en/{word.id}.mp3"
+        tts_ru_url = f"{settings.MEDIA_URL}audio/ru/{word.id}.mp3"
+
+        active_recording_url = None
+        if user_settings.voice_preference_type == VoicePreferenceType.OWN:
+            active_recording_url = user_own_recordings_map.get(word.id)
+        elif user_settings.voice_preference_type == VoicePreferenceType.OTHER_USER and user_settings.preferred_other_user_id:
+            active_recording_url = other_user_recordings_map.get(word.id)
+
+        current_word_data = {
+            "id": word.id,
+            "en": word.en,
+            "ru": word.ru,
+            "tts_en_url": tts_en_url,
+            "tts_ru_url": tts_ru_url,
+            "active_recording_url": active_recording_url
+        }
+        result_words.append(current_word_data)
 
         for sentence in sentences:
             template = sentence.template
@@ -760,6 +796,7 @@ def learn_words(request):
             "words": result_words,
             "sentences": result_sentences,
             "user_settings": user_settings,
+            "recordist_users": recordist_users, # Added recordist_users
             # 'is_random': is_random,  # Передаем текущий режим в шаблон
         },
     )
@@ -774,31 +811,45 @@ def save_user_settings(request):
             data = {}
 
         # Отримуємо налаштування користувача
-        user_settings = data.get("user_settings", {})
-        print(user_settings)
+        user_settings_data = data.get("user_settings", {})
+        print(user_settings_data) # Renamed for clarity
 
-        repeat_count = user_settings.get("repetitions", 1)
-        pause_between = float(user_settings.get("pauseBetween", 1000)) / 1000
+        repeat_count = user_settings_data.get("repetitions", 1)
+        pause_between = float(user_settings_data.get("pauseBetween", 1000)) / 1000
         delay_before_translation = (
-            float(user_settings.get("delayBeforeTranslation", 500)) / 1000
+            float(user_settings_data.get("delayBeforeTranslation", 500)) / 1000
         )
-        hide_translation = user_settings.get("hide_translation", False)
-        playback_speed = float(user_settings.get("playbackSpeed", 1))
-        lesson_repeat_count = user_settings.get("lessonRepeatCount", 1)
+        hide_translation = user_settings_data.get("hide_translation", False)
+        playback_speed = float(user_settings_data.get("playbackSpeed", 1))
+        lesson_repeat_count = user_settings_data.get("lessonRepeatCount", 1)
 
-        print(repeat_count, pause_between, delay_before_translation, hide_translation)
+        # New voice preference settings
+        new_voice_pref_type = user_settings_data.get('voicePreferenceType', VoicePreferenceType.TTS)
+        new_preferred_other_user_id = user_settings_data.get('preferredOtherUserId', None)
+
+        # Ensure preferredOtherUserId is an integer if provided, otherwise None
+        if new_preferred_other_user_id:
+            try:
+                new_preferred_other_user_id = int(new_preferred_other_user_id)
+            except ValueError:
+                new_preferred_other_user_id = None # Invalid ID, set to None
+
+        defaults_update = {
+            "repeat_count": repeat_count,
+            "pause_between": pause_between,
+            "delay_before_translation": delay_before_translation,
+            "hide_translation": hide_translation,
+            "playback_speed": playback_speed,
+            "lesson_repeat_count": lesson_repeat_count,
+            "voice_preference_type": new_voice_pref_type,
+            "preferred_other_user_id": new_preferred_other_user_id if new_voice_pref_type == VoicePreferenceType.OTHER_USER else None,
+            "use_own_recordings_if_available": new_voice_pref_type == VoicePreferenceType.OWN
+        }
 
         # Оновлюємо або створюємо нові налаштування
         user_settings_instance, created = UserSettings.objects.update_or_create(
             user=request.user,
-            defaults={
-                "repeat_count": repeat_count,
-                "pause_between": pause_between,
-                "delay_before_translation": delay_before_translation,
-                "hide_translation": hide_translation,
-                "playback_speed": playback_speed,
-                "lesson_repeat_count": lesson_repeat_count,
-            },
+            defaults=defaults_update,
         )
 
         return JsonResponse({"success": True})
