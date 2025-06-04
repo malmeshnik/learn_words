@@ -871,12 +871,28 @@
                 },
                 body: JSON.stringify({ user_settings: settings }),
             })
-            .then(res => res.json())  // додано виклик функції
+            .then(res => {
+                if (!res.ok) {
+                    // Try to parse error response if server sends JSON error
+                    return res.json().then(errData => {
+                        throw new Error(errData.error || `HTTP error! status: ${res.status}`);
+                    }).catch(() => {
+                        // Fallback if error response is not JSON
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
                 console.log('Settings saved:', data);
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    console.error('Failed to save settings on server:', data.error);
+                }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error saving settings:', error);
             });
         }        
             
