@@ -411,6 +411,7 @@
                         </div>
                     </div>
                 </div>
+                <button id="saveSettingsBtn" style="margin-top: 10px; margin-bottom: 10px; background-color: var(--accent-secondary); color: white;">Зберегти налаштування</button>
             </div>
         </div>
 
@@ -859,57 +860,59 @@
         }
 
         // Збереження налаштувань користувача на сервері
-        async function saveUserSettings() {
-            const settings = getDelaySettings();
+        async function saveUserSettings(settingsData, shouldReload = false) {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            fetch("{% url 'save_user_settings' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify({ user_settings: settings }),
-            })
-            .then(res => {
-                if (!res.ok) {
-                    // Try to parse error response if server sends JSON error
-                    return res.json().then(errData => {
-                        throw new Error(errData.error || `HTTP error! status: ${res.status}`);
-                    }).catch(() => {
-                        // Fallback if error response is not JSON
-                        throw new Error(`HTTP error! status: ${res.status}`);
-                    });
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log('Settings saved:', data);
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    console.error('Failed to save settings on server:', data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error saving settings:', error);
+            return new Promise((resolve, reject) => {
+                fetch("{% url 'save_user_settings' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ user_settings: settingsData }),
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        // Try to parse error response if server sends JSON error
+                        return res.json().then(errData => {
+                            reject(errData.error || `HTTP error! status: ${res.status}`);
+                        }).catch(() => {
+                            // Fallback if error response is not JSON
+                            reject(`HTTP error! status: ${res.status}`);
+                        });
+                    } else {
+                        return res.json();
+                    }
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        console.log('Settings saved:', data);
+                        if (shouldReload) {
+                            window.location.reload();
+                        }
+                        resolve(data); // Resolve on success
+                    } else {
+                        console.error('Failed to save settings on server:', data ? data.error : 'Unknown error');
+                        reject(data ? data.error : 'Failed to save settings'); // Reject if server says not success
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving settings:', error);
+                    reject(error); // Reject on network or other errors
+                });
             });
-        }        
+        }
+
+        async function initiateLearningProcess(settings) { // Renamed from startLearning, takes settings object
+            // const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked; // Use settings.enableSentenceAudio
+            // const enableWordAudio = document.getElementById('enableWordAudio').checked; // Use settings.enableWordAudio
             
-        // Початок навчання
-        async function startLearning() {
-            const enableSentenceAudio = document.getElementById('enableSentenceAudio').checked;
-            const enableWordAudio = document.getElementById('enableWordAudio').checked;
-            const settings = getDelaySettings();
-            
-            console.log('lessonRepeatCount:', settings.lessonRepeatCount);
+            console.log('lessonRepeatCount from initiateLearningProcess:', settings.lessonRepeatCount);
             
             currentIndex = 0;
             index = 0;
 
-            saveSettingsToSession();
-            saveUserSettings();
-
+            // UI changes
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('settingsBlock').style.display = 'none';
             document.getElementById('sentenceControls').style.display = 'flex';
@@ -917,13 +920,16 @@
             document.getElementById('showTranslation').style.display = 'inline-flex';
 
             // Підготовка масиву речень відповідно до налаштувань
-            adjustSentencesArray();
+            // adjustSentencesArray(); // Ensure this uses settings if it reads from DOM, or pass settings.sentenceValue
+            // For now, assuming adjustSentencesArray uses DOM values which are already set by getDelaySettings
+             adjustSentencesArray();
+
 
             for (let i = 0; i < settings.lessonRepeatCount; i++) {
                 currentIndex = 0;
                 index = 0;
 
-                if (enableWordAudio) {
+                if (settings.enableWordAudio) {
                     document.getElementById("backSentenceButton").style.display = 'none';
                     document.getElementById('BackWordButton').style.display = 'inline-flex';
                     document.getElementById('prevSentence').style.display = 'none';
@@ -934,7 +940,7 @@
                     await playingWords(); // Очікуємо завершення слів
                 }
 
-                if (enableSentenceAudio) {
+                if (settings.enableSentenceAudio) {
                     document.getElementById("BackWordButton").style.display = 'none';
                     document.getElementById("backSentenceButton").style.display = 'inline-flex';
                     document.getElementById('prevSentence').style.display = 'flex';
@@ -952,6 +958,19 @@
             document.getElementById('mainMenuButton').style.display = 'flex';
         }
 
+        async function applyAndStartLearning() {
+            const currentSettings = getDelaySettings();
+            saveSettingsToSession(); // This function calls getDelaySettings() internally
+
+            try {
+                await saveUserSettings(currentSettings, false); // Save settings without reload
+                console.log("Settings saved successfully via applyAndStartLearning. Proceeding to learning.");
+                initiateLearningProcess(currentSettings);
+            } catch (error) {
+                console.error("Failed to save settings via applyAndStartLearning. Learning not started.", error);
+                alert("Failed to save settings. Please try again. Error: " + (error.message || error));
+            }
+        }
 
         // Отримання налаштувань з полів введення
         function getDelaySettings() {
@@ -1074,12 +1093,24 @@
                     }
                 });
             });
+
+            const saveSettingsButton = document.getElementById('saveSettingsBtn');
+            if (saveSettingsButton) {
+                saveSettingsButton.addEventListener('click', async () => {
+                    const currentSettings = getDelaySettings();
+                    try {
+                        await saveUserSettings(currentSettings, true);
+                        // Page will reload if saveUserSettings is successful due to 'true' argument
+                    } catch (error) {
+                        console.error("Failed to save settings with reload:", error);
+                        alert("Error saving settings: " + (error.message || error));
+                    }
+                });
+            }
         });
 
         // Обробник кнопки початку навчання
-        document.getElementById('startBtn').addEventListener('click', () => {
-            startLearning();
-        });
+        document.getElementById('startBtn').addEventListener('click', applyAndStartLearning);
     </script>
 </body>
 </html>
