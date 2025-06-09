@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import (Room, 
+from .models import (Room,
+                     WordRecording,
                      Word, 
                      UserWord, 
                      SentenceTemplate,
@@ -23,6 +24,14 @@ class RoomAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'user')
     search_fields = ('name', 'user__username')
     list_filter = ('user',)
+
+@admin.register(WordRecording)
+class WordRecordingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'word', 'user', 'created_at')
+    search_fields = ('word__en', 'user__username')
+    list_filter = ('created_at',)
+    date_hierarchy = 'created_at'
+    list_select_related = ('word', 'user')
 
 @admin.register(Chapter)
 class ChapterAdmin(admin.ModelAdmin):
